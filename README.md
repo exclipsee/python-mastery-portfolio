@@ -1,0 +1,115 @@
+# Python Mastery Portfolio
+
+I built this repository to showcase how I write Python: clean, typed, tested, and production‑ready. It includes a small CLI, idiomatic modules, and full developer tooling so you can quickly evaluate how I work.
+
+[![CI](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/exclipsee/python-mastery-portfolio/actions)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+![ruff](https://img.shields.io/badge/lint-ruff-%23cc0000)
+![mypy](https://img.shields.io/badge/types-mypy-2A6DB2)
+
+## What this repo demonstrates
+
+- Clean, well-documented modules (algorithms, utilities)
+- A small, user-friendly CLI (`pm-portfolio`) built with Typer
+- Strong typing (mypy), formatting (black), linting (ruff), and tests (pytest + coverage)
+- Continuous Integration with GitHub Actions
+
+## Highlights
+
+- Python >= 3.10
+- Modern project layout (`src/`)
+- 100% type-hinted public APIs with docstrings
+- Tests cover examples and behavior, with full coverage across modules
+
+## Quick start
+
+Create a virtual environment and install in editable mode with developer tools:
+
+```powershell
+python -m venv .venv
+. .venv\Scripts\Activate.ps1
+pip install -U pip
+pip install -e .[dev]
+```
+
+Run the full quality suite:
+
+```powershell
+pytest
+ruff check .
+black --check .
+mypy
+```
+
+Try the CLI:
+
+```powershell
+pm-portfolio --help
+pm-portfolio fib 10
+pm-portfolio search --value 42 1 2 3 40 41 42 100
+```
+
+## Repo structure
+
+- `src/python_mastery_portfolio/` – package modules and CLI
+- `tests/` – pytest tests
+- `.github/workflows/ci.yml` – CI pipeline
+- `pyproject.toml` – config for tooling and packaging
+  
+### Bonus examples included
+
+- `vin.py` — VIN validation (ISO 3779) with CLI commands:
+	- `pm-portfolio vin-validate <VIN>`
+	- `pm-portfolio vin-check <VIN>`
+- `api.py` — a tiny FastAPI app exposing `/fib/{n}` and Pydantic-based `/vin/validate`
+- `ml_pipeline.py` — simple scikit-learn pipeline (StandardScaler + LinearRegression) with optional bias feature engineering and model persistence (joblib) wired into the CLI
+
+### Containers & Cloud
+
+- Dockerfile included to run the API with Uvicorn:
+
+```powershell
+docker build -t python-mastery-portfolio .
+docker run -p 8000:8000 python-mastery-portfolio
+```
+
+- Coverage is uploaded via GitHub Actions to Codecov (configure in repo settings).
+
+### AWS CDK (optional)
+
+I include an AWS CDK example (in `cdk/`) to deploy the Dockerized API to ECS Fargate with an ALB in `eu-central-1` (Frankfurt). This requires an AWS account and one-time CDK bootstrap in your account/region. See `cdk/README.md` for steps.
+
+Run the API locally (optional):
+
+```powershell
+uvicorn python_mastery_portfolio.api:app --reload
+```
+
+## About me
+
+- I’m Volodymyr Minutin — a Computer Science student and Python developer with ~4 years of experience.
+- I love building automotive‑related tools in Python (I’m a car enthusiast).
+- Tools I’m comfortable with include Python, CLI design (Typer), testing (pytest), type checking (mypy), and automation/CI.
+- I also have practical skills with MS Office (especially Excel) and can automate workflows end‑to‑end.
+- Languages: Russian (native), Ukrainian (native), Polish (C2), English (C1), German (B1).
+
+## How I work
+
+- Favor clear APIs, small modules, and strong typing for maintainability.
+- Treat tooling as part of the product: formatting, linting, typing, and tests run locally and in CI.
+- Keep examples practical and focused; include a CLI for fast manual testing.
+
+## CI status
+
+CI runs on GitHub Actions (see `.github/workflows/ci.yml`). The badge above reflects the latest status on GitHub once the repo is pushed.
+
+## Contact
+
+- Email: volodymyr.minutin@gmail.com
+- LinkedIn: https://www.linkedin.com/in/volodymyr-minutin-380310364
+- GitHub: https://github.com/exclipsee
+
+## License
+
+MIT

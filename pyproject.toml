@@ -1,0 +1,116 @@
+[project]
+name = "python-mastery-portfolio"
+version = "0.1.0"
+description = "A polished portfolio showcasing Python mastery: clean code, tests, typing, CI, and examples."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Volodymyr Minutin" }]
+keywords = ["python", "portfolio", "algorithms", "cli", "typing"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
+]
+dependencies = [
+  "typer[all]>=0.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/exclipsee/python-mastery-portfolio"
+Repository = "https://github.com/exclipsee/python-mastery-portfolio"
+
+[project.scripts]
+pm-portfolio = "python_mastery_portfolio.cli:app"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = { find = { where = ["src"], include = ["python_mastery_portfolio*"], exclude = ["tests*"] } }
+package-dir = {"" = "src"}
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=python_mastery_portfolio --cov-report=term-missing --cov-report=xml"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["python_mastery_portfolio"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "N",   # pep8-naming
+  "UP",  # pyupgrade
+  "B",   # bugbear
+]
+ignore = [
+  "E203",  # whitespace before ':' (black-compatible)
+  "B008",  # Typer/FastAPI style arg defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["python_mastery_portfolio"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+preview = true
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = ["src"]
+files = ["src", "tests"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "mypy>=1.10",
+  "black>=24.3",
+  "ruff>=0.5.0",
+  "fastapi>=0.111",
+  "uvicorn>=0.30",
+  "httpx>=0.27",
+  "openpyxl>=3.1",
+  "numpy>=2.0",
+  "scikit-learn>=1.5",
+  "joblib>=1.4",
+  "nox>=2024.4.15",
+]
+api = [
+  "fastapi>=0.111",
+  "uvicorn>=0.30",
+  "pydantic>=2.7",
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "openpyxl.*",
+  "numpy.*",
+  "sklearn.*",
+  "joblib.*",
+]
+ignore_missing_imports = true
