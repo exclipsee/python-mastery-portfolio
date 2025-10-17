@@ -65,6 +65,26 @@ pm-portfolio search --value 42 1 2 3 40 41 42 100
 - `api.py` — a tiny FastAPI app exposing `/fib/{n}` and Pydantic-based `/vin/validate`
 - `ml_pipeline.py` — simple scikit-learn pipeline (StandardScaler + LinearRegression) with optional bias feature engineering and model persistence (joblib) wired into the CLI
 
+### API Observability
+
+- Adds `X-Process-Time` and `X-Request-ID` headers to every response
+- JSON logging with request metadata; request-id is propagated if provided
+
+### Monitoring (optional)
+
+- CLI: `pm-portfolio monitor-ping http://localhost:8000/health -n 5 -i 0.2`
+- API endpoints: `/monitor/ping?url=...` and `/metrics` (Prometheus format)
+- Extras: `pip install -e .[monitoring]` to enable Prometheus metrics collection
+
+### CI Matrix
+
+- GitHub Actions runs on Python 3.10, 3.11, 3.12, 3.13
+
+### Optional: Publish to TestPyPI
+
+- Workflow `.github/workflows/publish-testpypi.yml` publishes on tag like `v0.1.0`
+- Add a secret `TEST_PYPI_API_TOKEN` in GitHub repo settings to enable
+
 ### Containers & Cloud
 
 - Dockerfile included to run the API with Uvicorn:
@@ -84,6 +104,15 @@ Run the API locally (optional):
 
 ```powershell
 uvicorn python_mastery_portfolio.api:app --reload
+```
+
+### Frontend demo (optional)
+
+- Install demo extras and run the Streamlit app:
+
+```powershell
+pip install -e .[demo]
+streamlit run demo/streamlit_app.py
 ```
 
 ## About me

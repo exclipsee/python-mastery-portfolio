@@ -11,6 +11,7 @@ from .ml_pipeline import (
     save_model,
     train_linear_regression,
 )
+from .monitor import ping_url, send_slack_webhook
 from .vin import compute_check_digit, is_valid_vin
 
 app = typer.Typer(help="Python Mastery Portfolio CLI")
@@ -78,9 +79,7 @@ def excel_export(
 @app.command("ml-train")
 def ml_train(
     y: list[float] = typer.Option(..., "--y", help="Target values, e.g. --y 1 2 3"),
-    x: list[str] = typer.Argument(
-        ..., help="Feature rows as 'v1,v2,...' e.g. '1,2' '3,4'"
-    ),
+    x: list[str] = typer.Argument(..., help="Feature rows as 'v1,v2,...' e.g. '1,2' '3,4'"),
     save: str | None = typer.Option(None, "--save", help="Optional path to save trained model"),
     add_bias: bool = typer.Option(
         False, "--add-bias", help="Prepend a bias feature (1.0) to each row"
@@ -126,3 +125,33 @@ def ml_predict(
         tm = train_linear_regression(x_rows, y_vals)
         preds = predict(tm, x_rows)
     typer.echo(",".join(f"{p:.3f}" for p in preds))
+
+
+@app.command("monitor-ping")
+def monitor_ping_cmd(
+    url: str = typer.Argument(
+        ..., help="URL to ping, e.g. http://localhost:8000/health"
+    ),
+    iterations: int = typer.Option(
+        1, "--iterations", "-n", min=1, help="Number of pings"
+    ),
+    interval: float = typer.Option(
+        0.5, "--interval", "-i", min=0.0, help="Sleep between pings (s)"
+    ),
+    slack_webhook: str | None = typer.Option(
+        None, "--slack-webhook", help="Slack incoming webhook URL for alerts"
+    ),
+) -> None:
+    import time as _t
+
+    worst: float | None = None
+    for _ in range(iterations):
+        res = ping_url(url)
+        typer.echo(f"{res.status} in {res.seconds:.3f}s -> {'OK' if res.ok else 'FAIL'}")
+        worst = res.seconds if worst is None else max(worst, res.seconds)
+        if not res.ok and slack_webhook:
+            send_slack_webhook(slack_webhook, f"Ping failed: {url} (status={res.status})")
+        if iterations > 1:
+            _t.sleep(interval)
+    if worst is not None:
+        typer.echo(f"worst={worst:.3f}s")

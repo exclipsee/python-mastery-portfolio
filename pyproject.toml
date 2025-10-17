@@ -105,6 +105,13 @@ api = [
   "uvicorn>=0.30",
   "pydantic>=2.7",
 ]
+demo = [
+  "streamlit>=1.36",
+  "requests>=2.32",
+]
+monitoring = [
+  "prometheus-client>=0.20",
+]
 
 [[tool.mypy.overrides]]
 module = [

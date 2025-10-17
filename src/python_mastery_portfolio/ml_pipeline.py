@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 from joblib import dump, load
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
-from typing import cast
 
 
 @dataclass

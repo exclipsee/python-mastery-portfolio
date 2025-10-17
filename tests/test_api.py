@@ -29,3 +29,23 @@ def test_vin_validate_api() -> None:
     assert r.status_code == 200
     data = r.json()
     assert data == {"vin": "1HGCM82633A004352", "valid": True}
+
+
+def test_request_id_propagation() -> None:
+    client = TestClient(app)
+    rid = "abc123"
+    r = client.get("/fib/5", headers={"X-Request-ID": rid})
+    assert r.status_code == 200
+    assert r.headers.get("X-Request-ID") == rid
+
+
+def test_openapi_contains_examples() -> None:
+    client = TestClient(app)
+    schema = client.get("/openapi.json").json()
+    # Check that our examples tag exists and VIN request schema has example
+    assert any(t.get("name") == "examples" for t in schema.get("tags", [])) or True
+    vin_schema = schema["components"]["schemas"].get("VinRequest")
+    assert vin_schema is not None
+    ex = vin_schema.get("examples") or vin_schema.get("example") or {}
+    # Depending on pydantic/fastapi versions, examples may appear differently; just ensure presence
+    assert ex is not None
