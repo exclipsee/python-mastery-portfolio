@@ -112,6 +112,10 @@ demo = [
 monitoring = [
   "prometheus-client>=0.20",
 ]
+rag = [
+  "sentence-transformers>=3.0",
+  "faiss-cpu>=1.8",
+]
 
 [[tool.mypy.overrides]]
 module = [

@@ -76,6 +76,16 @@ pm-portfolio search --value 42 1 2 3 40 41 42 100
 - API endpoints: `/monitor/ping?url=...` and `/metrics` (Prometheus format)
 - Extras: `pip install -e .[monitoring]` to enable Prometheus metrics collection
 
+### Document Q&A (MVP)
+
+- Add documents, semantic search, and ask a question over your text using a deterministic embedder for demos/tests.
+- Endpoints:
+	- `POST /qa/reset` — clear store
+	- `POST /qa/documents` — body: JSON array of strings; returns ids
+	- `POST /qa/search?query=...&k=5` — returns top-k hits
+	- `POST /qa/ask?question=...&k=3` — returns naive answer + hits
+- Optional extras: `pip install -e .[rag]` to experiment with sentence-transformers/FAISS.
+
 ### CI Matrix
 
 - GitHub Actions runs on Python 3.10, 3.11, 3.12, 3.13

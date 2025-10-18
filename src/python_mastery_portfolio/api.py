@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from starlette.responses import Response
 
 from .algorithms import fibonacci
+from .doc_qa import QAService
 from .logging_utils import setup_json_logging
 from .monitor import PING_HISTOGRAM, PingResult, ping_url
 
@@ -23,6 +24,8 @@ app = FastAPI(
         "Includes timing middleware, request-id propagation, and JSON logging."
     ),
 )
+
+_qa = QAService()
 
 
 @dataclass
@@ -133,3 +136,28 @@ def metrics() -> Response:
         return Response(content=b"", media_type=content_type_latest)
     data = _pc.generate_latest()
     return Response(content=data, media_type=content_type_latest)
+
+
+# --- Document Q&A ---
+
+@app.post("/qa/documents")
+def qa_add_documents(docs: list[str]) -> dict[str, list[int]]:
+    ids = _qa.add(docs)
+    return {"ids": ids}
+
+
+@app.post("/qa/search")
+def qa_search(query: str, k: int = 5) -> dict[str, object]:
+    hits = _qa.search(query, k=k)
+    return {"hits": hits}
+
+
+@app.post("/qa/ask")
+def qa_ask(question: str, k: int = 3) -> dict[str, object]:
+    return _qa.ask(question, k=k)
+
+
+@app.post("/qa/reset")
+def qa_reset() -> dict[str, str]:
+    _qa.reset()
+    return {"status": "reset"}
