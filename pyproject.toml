@@ -123,5 +123,7 @@ module = [
   "numpy.*",
   "sklearn.*",
   "joblib.*",
+  "sentence_transformers.*",
+  "faiss*",
 ]
 ignore_missing_imports = true

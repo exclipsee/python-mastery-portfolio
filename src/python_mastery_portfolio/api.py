@@ -161,3 +161,14 @@ def qa_ask(question: str, k: int = 3) -> dict[str, object]:
 def qa_reset() -> dict[str, str]:
     _qa.reset()
     return {"status": "reset"}
+
+
+@app.post("/qa/config")
+def qa_config(embedder: str, index: str) -> dict[str, str]:
+    try:
+        _qa.configure(embedder, index)
+    except Exception as e:  # noqa: BLE001 - return as bad request
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"status": "ok", "embedder": embedder, "index": index}
