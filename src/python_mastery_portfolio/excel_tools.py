@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import cast
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
+from openpyxl.worksheet.worksheet import Worksheet
 
 
 def write_rows_to_excel(rows: Iterable[Iterable[str]], output_path: str | Path) -> Path:
@@ -20,7 +22,8 @@ def write_rows_to_excel(rows: Iterable[Iterable[str]], output_path: str | Path) 
     """
     path = Path(output_path)
     wb = Workbook()
-    ws = wb.active
+    ws = cast(Worksheet, wb.active)
+    assert isinstance(ws, Worksheet)
     ws.title = "Data"
 
     rows_iter = iter(rows)
@@ -41,8 +44,18 @@ def write_rows_to_excel(rows: Iterable[Iterable[str]], output_path: str | Path) 
 
     # Auto-fit approximate widths
     for col in ws.columns:
-        max_len = max(len(str(c.value)) if c.value is not None else 0 for c in col)
-        ws.column_dimensions[col[0].column_letter].width = max(10, min(max_len + 2, 40))
+        col_cells = list(col)
+        if not col_cells:
+            continue
+        max_len = max(len(str(c.value)) if c.value is not None else 0 for c in col_cells)
+        first = col_cells[0]
+        # Some cells can be MergedCell without column_letter; fall back to coordinate
+        letter = getattr(first, "column_letter", None)
+        if letter is None:
+            # e.g., 'A1' -> take alpha prefix as column
+            coord = getattr(first, "coordinate", "A1")
+            letter = "".join(ch for ch in str(coord) if ch.isalpha()) or "A"
+        ws.column_dimensions[letter].width = max(10, min(max_len + 2, 40))
 
     wb.save(path)
     return path

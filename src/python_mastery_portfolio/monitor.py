@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover - only for typing
-    from prometheus_client import Histogram  # type: ignore
+    from prometheus_client import Histogram
 else:
     try:  # pragma: no cover - runtime optional import
         from prometheus_client import Histogram  # type: ignore

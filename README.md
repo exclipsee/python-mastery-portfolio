@@ -62,7 +62,10 @@ pm-portfolio search --value 42 1 2 3 40 41 42 100
 - `vin.py` — VIN validation (ISO 3779) with CLI commands:
 	- `pm-portfolio vin-validate <VIN>`
 	- `pm-portfolio vin-check <VIN>`
+		- `pm-portfolio vin-decode <VIN>`
+		- `pm-portfolio vin-generate --wmi 1HG --vds CM826 --year 2003 --plant A --serial 004352`
 - `api.py` — a tiny FastAPI app exposing `/fib/{n}` and Pydantic-based `/vin/validate`
+	and extended VIN endpoints: `/vin/decode` and `/vin/generate`
 - `ml_pipeline.py` — simple scikit-learn pipeline (StandardScaler + LinearRegression) with optional bias feature engineering and model persistence (joblib) wired into the CLI
 
 ### API Observability
@@ -124,6 +127,24 @@ uvicorn python_mastery_portfolio.api:app --reload
 pip install -e .[demo]
 streamlit run demo/streamlit_app.py
 ```
+
+Configuration:
+
+- The app resolves the API base URL in this order: environment variable `API_URL` > Streamlit `secrets.toml` > default `http://localhost:8000`.
+- To configure secrets, create either `%USERPROFILE%/.streamlit/secrets.toml` or `demo/.streamlit/secrets.toml`:
+
+```
+API_URL = "http://localhost:8000"
+```
+
+Alternatively, set an environment variable before launching Streamlit:
+
+```powershell
+$env:API_URL = "http://localhost:8000"
+streamlit run demo/streamlit_app.py
+```
+
+Demo includes VIN decode UI calling `/vin/decode` to show WMI/region/year/plant details.
 
 ## About me
 

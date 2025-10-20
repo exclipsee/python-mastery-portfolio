@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from openpyxl import load_workbook
+from openpyxl.worksheet.worksheet import Worksheet
 from typer.testing import CliRunner
 
 from python_mastery_portfolio.cli import app
@@ -15,7 +17,7 @@ def test_write_rows_to_excel(tmp_path: Path) -> None:
     out = write_rows_to_excel(rows, target)
     assert out.exists()
     wb = load_workbook(out)
-    ws = wb.active
+    ws = cast(Worksheet, wb.active)
     assert ws["A1"].value == "Name"
     assert ws["B2"].value == "90"
 

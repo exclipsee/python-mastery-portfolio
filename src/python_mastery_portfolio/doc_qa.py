@@ -4,7 +4,7 @@ import math
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 
 def _tokenize(text: str) -> list[str]:
@@ -20,7 +20,8 @@ class Embedder(Protocol):
 class SimpleEmbedder:
     """Deterministic bag-of-words embedder for tests and demo.
 
-    Maintains a growing vocabulary across calls; earlier vectors are padded to new size by the index.
+    Maintains a growing vocabulary across calls; earlier vectors are padded
+    to new size by the index.
     """
 
     def __init__(self) -> None:
@@ -95,9 +96,9 @@ class NaiveIndex:
             if len(e.emb) < self._dim:
                 e.emb = self._fit_dim(e.emb, self._dim)
         ids: list[int] = []
-        for t, e in zip(texts, embs, strict=True):
-            e = self._fit_dim(e, self._dim)
-            self._entries.append(_Entry(id=self._next_id, text=t, emb=e))
+        for t, vec in zip(texts, embs, strict=True):
+            fitted = self._fit_dim(vec, self._dim)
+            self._entries.append(_Entry(id=self._next_id, text=t, emb=fitted))
             ids.append(self._next_id)
             self._next_id += 1
         return ids
@@ -120,69 +121,103 @@ class NaiveIndex:
 
 class SentenceTransformerEmbedder:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
-        from sentence_transformers import SentenceTransformer  # type: ignore
+        from sentence_transformers import SentenceTransformer
 
         self.model = SentenceTransformer(model_name)
-        self._dim = int(self.model.get_sentence_embedding_dimension())
+        d = self.model.get_sentence_embedding_dimension()
+        if isinstance(d, int):
+            self._dim = d
+        else:
+            # Fallback if API returns an unexpected type
+            self._dim = int(d or 0)
 
-    def dim(self) -> int:  # type: ignore[override]
+    def dim(self) -> int:
         return self._dim
 
-    def embed(self, texts: list[str]) -> list[list[float]]:  # type: ignore[override]
+    def embed(self, texts: list[str]) -> list[list[float]]:
         vecs = self.model.encode(texts, normalize_embeddings=True)
         return [list(map(float, v)) for v in vecs]
 
 
 class FaissIndex:
     def __init__(self, embedder: Embedder) -> None:
-        import faiss  # type: ignore
-
         self.embedder = embedder
         self._texts: list[str] = []
         self._ids: list[int] = []
         self._next_id = 1
         self._dim = embedder.dim()
-        self._faiss = faiss.IndexFlatIP(self._dim)
+        # Lazily type-annotate FAISS index as Any to satisfy static checkers
+        import faiss
 
-    def add(self, texts: list[str]) -> list[int]:  # type: ignore[override]
-        import numpy as np  # type: ignore
+        self._faiss: Any = faiss.IndexFlatIP(self._dim)
 
-        vecs = self.embedder.embed(texts)
+    def _rebuild_index(self) -> None:
+        """Rebuild FAISS index when embedding dimension changes or after reset."""
+        import faiss
+        import numpy as np
+
         self._dim = self.embedder.dim()
-        # normalize for cosine similarity on inner product index
+        self._faiss = faiss.IndexFlatIP(self._dim)
+        if not self._texts:
+            return
+        vecs = self.embedder.embed(self._texts)
         arr = np.asarray(vecs, dtype="float32")
-        norms = (np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12)
+        norms = np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12
         arr = arr / norms
-        self._faiss.add(arr)
+        # pyright: ignore[reportGeneralTypeIssues] for FAISS type shims
+        self._faiss.add(arr)  # pyright: ignore[reportGeneralTypeIssues]
+
+    def add(self, texts: list[str]) -> list[int]:
+        import numpy as np
+
+        # Generate ids and update local stores first
         ids: list[int] = []
         for t in texts:
             self._texts.append(t)
             self._ids.append(self._next_id)
             ids.append(self._next_id)
             self._next_id += 1
+
+        # Compute embeddings for new texts
+        vecs = self.embedder.embed(texts)
+        new_dim = self.embedder.dim()
+        if new_dim != self._dim:
+            # Dimension changed (e.g., vocabulary grew). Rebuild entire index.
+            self._rebuild_index()
+            return ids
+
+        # normalize for cosine similarity on inner product index
+        arr = np.asarray(vecs, dtype="float32")
+        norms = np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12
+        arr = arr / norms
+        self._faiss.add(arr)  # pyright: ignore[reportGeneralTypeIssues]
         return ids
 
-    def reset(self) -> None:  # type: ignore[override]
-        import faiss  # type: ignore
-
+    def reset(self) -> None:
         self._texts.clear()
         self._ids.clear()
         self._next_id = 1
-        self._faiss = faiss.IndexFlatIP(self.embedder.dim())
+        # Recreate FAISS index with current embedder dimension
+        self._rebuild_index()
 
-    def search(self, query: str, k: int) -> list[tuple[int, float, str]]:  # type: ignore[override]
-        import numpy as np  # type: ignore
+    def search(self, query: str, k: int) -> list[tuple[int, float, str]]:
+        import numpy as np
+
+        if not self._texts or k <= 0:
+            return []
 
         v = self.embedder.embed([query])[0]
         arr = np.asarray([v], dtype="float32")
         arr = arr / (np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12)
-        scores, idxs = self._faiss.search(arr, k)
+        scores, idxs = self._faiss.search(arr, k)  # pyright: ignore[reportGeneralTypeIssues]
         out: list[tuple[int, float, str]] = []
-        for pos in idxs[0]:
+        # FAISS returns positions in the order vectors were added
+        for rank, pos in enumerate(idxs[0]):
             if pos == -1:
                 continue
             id_ = self._ids[pos]
-            out.append((id_, float(scores[0][pos]), self._texts[pos]))
+            score = float(scores[0][rank])
+            out.append((id_, score, self._texts[pos]))
         return out
 
 

@@ -12,7 +12,7 @@ from .ml_pipeline import (
     train_linear_regression,
 )
 from .monitor import ping_url, send_slack_webhook
-from .vin import compute_check_digit, is_valid_vin
+from .vin import compute_check_digit, decode_vin, generate_vin, is_valid_vin
 
 app = typer.Typer(help="Python Mastery Portfolio CLI")
 
@@ -57,6 +57,45 @@ def vin_check(vin: str = typer.Argument(..., help="17-character VIN")) -> None:
     if len(vin_u) != 17:
         raise typer.Exit(code=2)
     typer.echo(compute_check_digit(vin_u))
+
+
+@app.command("vin-decode")
+def vin_decode_cmd(vin: str = typer.Argument(..., help="17-character VIN")) -> None:
+    """Decode a VIN (WMI/VDS/VIS, year, plant, region, brand)."""
+    dec = decode_vin(vin)
+    # Print as lightweight key=value lines for readability
+    fields = [
+        ("vin", dec.vin),
+        ("valid", str(dec.valid)),
+        ("wmi", dec.wmi),
+        ("vds", dec.vds),
+        ("vis", dec.vis),
+        ("check_digit", dec.check_digit),
+        ("model_year_code", dec.model_year_code or ""),
+        ("model_year", str(dec.model_year) if dec.model_year is not None else ""),
+        ("plant_code", dec.plant_code or ""),
+        ("serial_number", dec.serial_number or ""),
+        ("region", dec.region or ""),
+        ("brand", dec.brand or ""),
+    ]
+    for k, v in fields:
+        typer.echo(f"{k}={v}")
+
+
+@app.command("vin-generate")
+def vin_generate_cmd(
+    wmi: str = typer.Option(..., "--wmi", help="World Manufacturer Identifier (3 chars)"),
+    vds: str = typer.Option(..., "--vds", help="Vehicle Descriptor Section (5 chars)"),
+    year: int = typer.Option(..., "--year", min=1980, max=2039, help="Model year"),
+    plant: str = typer.Option(..., "--plant", help="Plant code (1 char)"),
+    serial: str = typer.Option(..., "--serial", help="Serial (6 chars)"),
+) -> None:
+    """Generate a valid VIN from components (computes check digit)."""
+    try:
+        vin = generate_vin(wmi, vds, year, plant, serial)
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from e
+    typer.echo(vin)
 
 
 @app.command("excel-export")

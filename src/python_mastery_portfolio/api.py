@@ -4,6 +4,7 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -86,6 +87,69 @@ def vin_validate_api(req: VinRequest) -> VinResponse:
     return VinResponse(vin=req.vin, valid=valid)
 
 
+class VinDecodedResponse(BaseModel):
+    vin: str
+    valid: bool
+    wmi: str
+    vds: str
+    vis: str
+    check_digit: str
+    check_digit_valid: bool | None
+    model_year_code: str | None
+    model_year: int | None
+    model_year_candidates: list[int] | None
+    plant_code: str | None
+    serial_number: str | None
+    region: str | None
+    brand: str | None
+    notes: list[str] | None
+
+
+@app.post(
+    "/vin/decode",
+    response_model=VinDecodedResponse,
+    tags=["examples"],
+    summary="Decode structural VIN fields (WMI/VDS/VIS, year, plant, etc)",
+)
+def vin_decode_api(req: VinRequest) -> VinDecodedResponse:
+    from .vin import decode_vin
+
+    dec = decode_vin(req.vin)
+    logger.info("vin_decode", extra={"valid": dec.valid, "wmi": dec.wmi})
+    return VinDecodedResponse(**dec.__dict__)
+
+
+class VinGenerateRequest(BaseModel):
+    wmi: str = Field(..., min_length=3, max_length=3, examples=["1HG"])
+    vds: str = Field(..., min_length=5, max_length=5, examples=["CM826"])
+    year: int = Field(..., ge=1980, le=2039, examples=[2003])
+    plant_code: str = Field(..., min_length=1, max_length=1, examples=["A"])
+    serial: str = Field(..., min_length=6, max_length=6, examples=["004352"])
+
+
+class VinGenerateResponse(BaseModel):
+    vin: str
+
+
+@app.post(
+    "/vin/generate",
+    response_model=VinGenerateResponse,
+    tags=["examples"],
+    summary="Generate a valid VIN (computes check digit)",
+)
+def vin_generate_api(req: VinGenerateRequest) -> VinGenerateResponse:
+    from .vin import generate_vin
+
+    try:
+        vin = generate_vin(req.wmi, req.vds, req.year, req.plant_code, req.serial)
+    except ValueError as e:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    logger.info("vin_generate", extra={"wmi": req.wmi, "year": req.year})
+    return VinGenerateResponse(vin=vin)
+
+
 @app.middleware("http")
 async def add_timing_header(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -123,18 +187,24 @@ def monitor_ping(url: str) -> PingResult:
 @app.get("/metrics")
 def metrics() -> Response:
     # Lazy import to avoid hard dependency if not installed
+    pc: Any | None
     try:
-        import prometheus_client as _pc  # type: ignore
+        import prometheus_client as pc  # runtime optional
     except Exception:  # pragma: no cover - import may fail when not installed
-        _pc = None
+        pc = None
         content_type_latest = "text/plain; version=0.0.4; charset=utf-8"
     else:
-        content_type_latest = _pc.CONTENT_TYPE_LATEST
+        # pc is a module at this point
+        content_type_latest = getattr(
+            pc,
+            "CONTENT_TYPE_LATEST",
+            "text/plain; version=0.0.4; charset=utf-8",
+        )
 
-    if PING_HISTOGRAM is None or _pc is None:
+    if PING_HISTOGRAM is None or pc is None:
         # Expose an empty payload to avoid 500s when optional dep is missing
         return Response(content=b"", media_type=content_type_latest)
-    data = _pc.generate_latest()
+    data = pc.generate_latest()
     return Response(content=data, media_type=content_type_latest)
 
 
@@ -170,5 +240,5 @@ def qa_config(embedder: str, index: str) -> dict[str, str]:
     except Exception as e:  # noqa: BLE001 - return as bad request
         from fastapi import HTTPException
 
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"status": "ok", "embedder": embedder, "index": index}

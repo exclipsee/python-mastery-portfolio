@@ -124,6 +124,6 @@ module = [
   "sklearn.*",
   "joblib.*",
   "sentence_transformers.*",
-  "faiss*",
+  "faiss.*",
 ]
 ignore_missing_imports = true
