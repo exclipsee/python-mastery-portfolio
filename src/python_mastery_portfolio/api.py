@@ -1,19 +1,28 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+import tempfile
 import time
+from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from pathlib import Path
+from time import monotonic
 from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from pydantic import BaseModel, Field
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from .algorithms import fibonacci
 from .doc_qa import QAService
+from .excel_tools import write_rows_to_excel
 from .logging_utils import setup_json_logging
+from .ml_pipeline import TrainedModel, train_linear_regression
+from .ml_pipeline import predict as ml_predict
 from .monitor import PING_HISTOGRAM, PingResult, ping_url
 
 setup_json_logging()
@@ -27,6 +36,44 @@ app = FastAPI(
 )
 
 _qa = QAService()
+
+# Default ML model for /ml/predict; trained at startup on a simple pattern
+_ml_model: TrainedModel | None = None
+
+
+def _init_default_ml_model() -> None:
+    global _ml_model
+    try:
+        # Simple dataset: y = x1 + x2
+        x = [[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]]
+        y = [3.0, 5.0, 7.0, 9.0]
+        _ml_model = train_linear_regression(x, y)
+    except Exception as e:  # pragma: no cover
+        logger.exception("failed_default_model", extra={"error": str(e)})
+        _ml_model = None
+
+
+_init_default_ml_model()
+
+
+# Simple per-IP rate limiter for demo endpoints (e.g., VIN)
+_rate_buckets: dict[str, deque[float]] = defaultdict(deque)
+_RATE_LIMIT_MAX = 120  # requests
+_RATE_LIMIT_WINDOW = 60.0  # seconds
+
+
+def _check_rate_limit(req: Request, max_req: int = _RATE_LIMIT_MAX) -> None:
+    now = monotonic()
+    ip = (req.client.host if req.client else "unknown") or "unknown"
+    dq = _rate_buckets[ip]
+    # drop old timestamps
+    while dq and now - dq[0] > _RATE_LIMIT_WINDOW:
+        dq.popleft()
+    if len(dq) >= max_req:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=429, detail="rate limit exceeded")
+    dq.append(now)
 
 
 @dataclass
@@ -79,9 +126,10 @@ class VinResponse(BaseModel):
     tags=["examples"],
     summary="Validate a VIN using ISO 3779 (check digit)",
 )
-def vin_validate_api(req: VinRequest) -> VinResponse:
+def vin_validate_api(req: VinRequest, request: Request) -> VinResponse:
     from .vin import is_valid_vin
 
+    _check_rate_limit(request)
     valid = bool(is_valid_vin(req.vin))
     logger.info("vin_validate", extra={"vin_len": len(req.vin), "valid": valid})
     return VinResponse(vin=req.vin, valid=valid)
@@ -111,12 +159,23 @@ class VinDecodedResponse(BaseModel):
     tags=["examples"],
     summary="Decode structural VIN fields (WMI/VDS/VIS, year, plant, etc)",
 )
-def vin_decode_api(req: VinRequest) -> VinDecodedResponse:
+def vin_decode_api(req: VinRequest, request: Request) -> Response:
     from .vin import decode_vin
 
     dec = decode_vin(req.vin)
     logger.info("vin_decode", extra={"valid": dec.valid, "wmi": dec.wmi})
-    return VinDecodedResponse(**dec.__dict__)
+    _check_rate_limit(request)
+    payload = VinDecodedResponse(**dec.__dict__).model_dump()
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
+    etag = hashlib.md5(raw).hexdigest()  # noqa: S324 demo-only weak hash ok
+    inm = request.headers.get("If-None-Match")
+    headers = {
+        "ETag": etag,
+        "Cache-Control": "public, max-age=3600",
+    }
+    if inm == etag:
+        return Response(status_code=304, headers=headers)
+    return JSONResponse(content=payload, headers=headers)
 
 
 class VinGenerateRequest(BaseModel):
@@ -137,9 +196,10 @@ class VinGenerateResponse(BaseModel):
     tags=["examples"],
     summary="Generate a valid VIN (computes check digit)",
 )
-def vin_generate_api(req: VinGenerateRequest) -> VinGenerateResponse:
+def vin_generate_api(req: VinGenerateRequest, request: Request) -> VinGenerateResponse:
     from .vin import generate_vin
 
+    _check_rate_limit(request)
     try:
         vin = generate_vin(req.wmi, req.vds, req.year, req.plant_code, req.serial)
     except ValueError as e:
@@ -242,3 +302,102 @@ def qa_config(embedder: str, index: str) -> dict[str, str]:
 
         raise HTTPException(status_code=400, detail=str(e)) from e
     return {"status": "ok", "embedder": embedder, "index": index}
+
+
+# --- Excel Export ---
+
+class ExcelExportRequest(BaseModel):
+    rows: list[list[str]]
+
+
+@app.post(
+    "/excel/export",
+    tags=["examples"],
+    summary="Generate an Excel file from rows of strings",
+    responses={
+        200: {
+            "description": "XLSX file attachment",
+            "content": {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            },
+        }
+    },
+)
+def excel_export_api(req: ExcelExportRequest) -> Response:
+    """Return an .xlsx file generated from the provided rows.
+
+    Uses the existing utility `write_rows_to_excel`. A temporary file is created
+    and returned as an attachment.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "export.xlsx"
+        write_rows_to_excel(req.rows, path)
+        data = path.read_bytes()
+    headers = {
+        "Content-Disposition": 'attachment; filename="export.xlsx"'
+    }
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
+
+
+# --- ML Endpoints ---
+
+class MLPredictRequest(BaseModel):
+    rows: list[list[float]]
+
+
+class MLPredictResponse(BaseModel):
+    predictions: list[float]
+
+
+@app.post(
+    "/ml/predict",
+    tags=["ml"],
+    response_model=MLPredictResponse,
+    summary="Predict using a default linear regression model",
+)
+def ml_predict_api(req: MLPredictRequest) -> MLPredictResponse:
+    if _ml_model is None:
+        # Initialize lazily if needed
+        _init_default_ml_model()
+        if _ml_model is None:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=500, detail="model not available")
+    preds = ml_predict(_ml_model, req.rows)
+    return MLPredictResponse(predictions=preds)
+
+
+class MLTrainRequest(BaseModel):
+    x: list[list[float]]
+    y: list[float]
+    set_default: bool = Field(
+        default=True,
+        description="If true, update the service's default model",
+    )
+
+
+class MLTrainResponse(BaseModel):
+    status: str
+    n_rows: int
+
+
+@app.post(
+    "/ml/train",
+    tags=["ml"],
+    response_model=MLTrainResponse,
+    summary="Train a linear regression model (optionally set as default)",
+)
+def ml_train_api(req: MLTrainRequest) -> MLTrainResponse:
+    global _ml_model
+    if len(req.x) != len(req.y):
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail="x and y lengths differ")
+    model = train_linear_regression(req.x, req.y)
+    if req.set_default:
+        _ml_model = model
+    return MLTrainResponse(status="ok", n_rows=len(req.x))

@@ -72,6 +72,24 @@ def _handle_request(
         st.error(f"Invalid JSON response from {url}: {e}")
         return None
 
+
+def _download_request(
+    func: Callable[..., requests.Response], url: str, **kwargs: Any
+) -> bytes | None:
+    """Perform a requests call that expects binary content.
+
+    Shows a UI error on failure and returns None.
+    """
+    try:
+        r = func(url, timeout=20, **kwargs)
+    except requests.RequestException as e:
+        st.error(f"Request failed: {e}")
+        return None
+    if not (200 <= r.status_code < 300):
+        st.error(f"HTTP {r.status_code} calling {url}")
+        return None
+    return r.content
+
 st.header("Fibonacci")
 n = st.number_input("n", min_value=0, value=10, step=1)
 if st.button("Compute Fibonacci"):
@@ -118,3 +136,38 @@ if st.button("Decode VIN"):
             st.info(n)
         st.subheader("Full JSON")
         st.code(json.dumps(data, indent=2))
+
+
+st.header("Export to Excel")
+st.write("Paste CSV data (comma-separated) or small table. We'll generate an .xlsx file.")
+csv_text = st.text_area(
+    "CSV input",
+    "Name,Score\nAlice,95\nBob,90",
+    height=120,
+)
+col1, col2 = st.columns([1, 1])
+download_fname = col1.text_input("File name", value="export.xlsx")
+delimiter = col2.text_input("Delimiter", value=",")
+
+if st.button("Generate Excel"):
+    # Parse CSV text into rows of strings
+    rows: list[list[str]] = []
+    for line in csv_text.splitlines():
+        if not line.strip():
+            continue
+        rows.append([c.strip() for c in line.split(delimiter)])
+    if not rows:
+        st.warning("No rows to export.")
+    else:
+        data = _download_request(
+            requests.post,
+            f"{API_URL}/excel/export",
+            json={"rows": rows},
+        )
+        if data is not None:
+            st.download_button(
+                label="Download Excel",
+                data=data,
+                file_name=download_fname or "export.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
