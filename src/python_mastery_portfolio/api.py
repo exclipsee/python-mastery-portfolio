@@ -1,19 +1,21 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
 import tempfile
 import time
 from collections import defaultdict, deque
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
 from typing import Any
 from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse, Response
 
@@ -24,18 +26,37 @@ from .logging_utils import setup_json_logging
 from .ml_pipeline import TrainedModel, train_linear_regression
 from .ml_pipeline import predict as ml_predict
 from .monitor import PING_HISTOGRAM, PingResult, ping_url
+from .system_metrics import metrics_broadcaster
+from .websocket_manager import ConnectionManager
 
 setup_json_logging()
 logger = logging.getLogger("api")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan manager."""
+    # Startup
+    asyncio.create_task(metrics_broadcaster(_ws_manager, interval=2.0))
+    logger.info("metrics_broadcaster_started")
+    yield
+    # Shutdown (cleanup if needed)
+
+
 app = FastAPI(
     title="Python Mastery API",
     description=(
         "Typed FastAPI service with examples: Fibonacci, VIN validation. "
-        "Includes timing middleware, request-id propagation, and JSON logging."
+        "Includes timing middleware, request-id propagation, JSON logging, "
+        "and real-time monitoring."
     ),
+    lifespan=lifespan,
 )
 
 _qa = QAService()
+
+# WebSocket connection manager for real-time monitoring
+_ws_manager = ConnectionManager()
 
 # Default ML model for /ml/predict; trained at startup on a simple pattern
 _ml_model: TrainedModel | None = None
@@ -401,3 +422,32 @@ def ml_train_api(req: MLTrainRequest) -> MLTrainResponse:
     if req.set_default:
         _ml_model = model
     return MLTrainResponse(status="ok", n_rows=len(req.x))
+
+
+# --- WebSocket Real-time Monitoring ---
+
+@app.websocket("/ws/metrics")
+async def websocket_metrics(websocket: WebSocket) -> None:
+    """WebSocket endpoint for real-time system metrics."""
+    await _ws_manager.connect(websocket)
+    try:
+        # Keep connection alive and handle any incoming messages
+        while True:
+            # We don't expect client messages for metrics, but need to listen
+            # to detect disconnections
+            try:
+                await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+            except asyncio.TimeoutError:
+                # No message received, continue
+                continue
+    except WebSocketDisconnect:
+        _ws_manager.disconnect(websocket)
+    except Exception as e:
+        logger.warning("websocket_error", extra={"error": str(e)})
+        _ws_manager.disconnect(websocket)
+
+
+@app.get("/monitor/connections")
+def get_websocket_connections() -> dict[str, int]:
+    """Get current WebSocket connection count."""
+    return {"active_connections": _ws_manager.get_connection_count()}

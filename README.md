@@ -76,8 +76,9 @@ pm-portfolio search --value 42 1 2 3 40 41 42 100
 ### Monitoring (optional)
 
 - CLI: `pm-portfolio monitor-ping http://localhost:8000/health -n 5 -i 0.2`
-- API endpoints: `/monitor/ping?url=...` and `/metrics` (Prometheus format)
-- Extras: `pip install -e .[monitoring]` to enable Prometheus metrics collection
+- API endpoints: `/monitor/ping?url=...`, `/metrics` (Prometheus format), `/monitor/connections`
+- **Real-time WebSocket monitoring**: `ws://localhost:8000/ws/metrics` broadcasts system metrics every 2 seconds
+- Extras: `pip install -e .[monitoring]` to enable Prometheus metrics collection and system monitoring
 
 ### Document Q&A (MVP)
 

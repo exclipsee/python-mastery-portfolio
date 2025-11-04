@@ -108,9 +108,13 @@ api = [
 demo = [
   "streamlit>=1.36",
   "requests>=2.32",
+  "websockets>=13.0",
+  "plotly>=5.17",
+  "pandas>=2.0",
 ]
 monitoring = [
   "prometheus-client>=0.20",
+  "psutil>=6.0",
 ]
 rag = [
   "sentence-transformers>=3.0",
@@ -125,5 +129,6 @@ module = [
   "joblib.*",
   "sentence_transformers.*",
   "faiss.*",
+  "psutil.*",
 ]
 ignore_missing_imports = true

@@ -171,3 +171,39 @@ if st.button("Generate Excel"):
                 file_name=download_fname or "export.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
+
+
+st.header("Real-Time System Monitoring")
+st.write("Live system metrics from the API server via WebSocket.")
+
+# Simple monitoring section with basic metrics display
+if st.button("Get Current WebSocket Connections"):
+    try:
+        data = _handle_request(requests.get, f"{API_URL}/monitor/connections")
+        if data is not None:
+            st.metric("Active WebSocket Connections", data.get("active_connections", 0))
+    except Exception as e:
+        st.error(f"Failed to get connection count: {e}")
+
+st.info(
+    "📊 **Coming Soon**: Real-time charts with live CPU, memory, and disk usage "
+    "via WebSocket streaming!"
+)
+st.write("""
+To see the real-time monitoring in action:
+1. Start the API server: `uvicorn python_mastery_portfolio.api:app --port 8000`
+2. Open WebSocket connection to: `ws://localhost:8000/ws/metrics`
+3. You'll receive JSON messages every 2 seconds with system metrics like:
+   ```json
+   {
+     "type": "system_metrics",
+     "data": {
+       "timestamp": 1635724800.0,
+       "cpu_percent": 25.5,
+       "memory_percent": 60.0,
+       "disk_usage_percent": 45.2,
+       "active_connections": 3
+     }
+   }
+   ```
+""")

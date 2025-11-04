@@ -23,5 +23,6 @@ def test_excel_export_endpoint() -> None:
     # Load workbook from bytes and verify contents
     wb = load_workbook(BytesIO(r.content))
     ws = wb.active
+    assert ws is not None, "Active worksheet should not be None"
     assert ws["A1"].value == "Name"
     assert ws["B2"].value == "90"
