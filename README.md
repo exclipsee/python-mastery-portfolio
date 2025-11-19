@@ -10,10 +10,40 @@ I built this repository to showcase how I write Python: clean, typed, tested, an
 
 ## What this repo demonstrates
 
-- Clean, well-documented modules (algorithms, utilities)
-- A small, user-friendly CLI (`pm-portfolio`) built with Typer
-- Strong typing (mypy), formatting (black), linting (ruff), and tests (pytest + coverage)
-- Continuous Integration with GitHub Actions
+
+## New: Data Validation & Quality Checks
+
+I added a lightweight data validation feature to help ensure training and
+inference datasets meet expected schema and value ranges. The implementation
+lives in `src/python_mastery_portfolio/data_validation.py` and includes:
+
+- `load_sample_data()` — helper that reads `data/sample_data.csv` shipped with the repo.
+- `validate_schema(df)` — pandas-based checks for required columns, types,
+  nulls, categories and simple range checks (0..100 for numeric features in
+  the sample).
+- `run_validation_on_csv()` — will use Great Expectations if installed,
+  otherwise falls back to the lightweight checks.
+
+There is a sample dataset (`data/sample_data.csv`) and unit tests that exercise
+the validation logic (`tests/test_data_validation.py`). This makes it easy to
+hook validation into training or inference paths in the future.
+
+How to run the validation tests locally (PowerShell):
+
+```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install -U pip
+pip install -r requirements.txt --upgrade || pip install pandas pytest pytest-cov
+$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
+pytest -q tests/test_data_validation.py
+```
+
+Optional: install Great Expectations to run the GE-backed checks:
+
+```powershell
+pip install great_expectations
+python -c "from python_mastery_portfolio.data_validation import run_validation_on_csv; print(run_validation_on_csv())"
+```
 
 ## Highlights
 
