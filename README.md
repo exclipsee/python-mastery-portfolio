@@ -1,3 +1,47 @@
+# python-mastery-portfolio
+
+Small, well-tested Python utilities and demos for data science, machine
+learning and deployment. The repo is intentionally lightweight so examples run
+quickly on a developer machine or CI.
+
+Core highlights
+- Lightweight CLI and utilities under `src/python_mastery_portfolio/`
+- Data validation: `data/sample_data.csv` + `src/.../data_validation.py` (pandas
+  checks with optional Great Expectations support)
+- ML fundamentals helper: `src/.../ml_utils.py` (train/test split, k-fold CV,
+  accuracy/precision/recall/F1/MSE/ROC-AUC implementations)
+- Demo apps under `demo/` and small benchmarks under `benchmarks/`
+
+Quick start (PowerShell)
+```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install -U pip
+pip install -r requirements.txt --upgrade || pip install pandas pytest pytest-cov
+$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
+pytest -q
+```
+
+Run only validation tests:
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
+pytest -q tests/test_data_validation.py
+```
+
+Run only ML utils tests:
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
+pytest -q tests/test_ml_utils.py
+```
+
+Next ideas
+- Add a FastAPI model-serving example with Docker and CI
+- Integrate Great Expectations suites into `data/expectations/`
+- Add a demo notebook showing CV, ROC and PR curves using the ML utilities
+
+Contributing
+- PRs welcome. Keep changes small and include tests.
+
+License: MIT
 # Python Mastery Portfolio
 
 I built this repository to showcase how I write Python: clean, typed, tested, and production‑ready. It includes a small CLI, idiomatic modules, and full developer tooling so you can quickly evaluate how I work.
