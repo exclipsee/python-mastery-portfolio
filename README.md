@@ -1,5 +1,43 @@
 # python-mastery-portfolio
 
+[![CI](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/exclipsee/python-mastery-portfolio/actions)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+
+Small, well-tested Python utilities and demos focused on data, ML, and practical engineering.
+
+Core highlights
+- Polished demo app under `demo/streamlit_app.py` — Streamlit UI with an offline fallback so reviewers can try features without running the API. Features include:
+  - Fibonacci calculator (API or local fallback)
+  - VIN validation & decode (uses local `vin.py` helpers if API is unavailable)
+  - Lightweight CSV export/download fallback for quick demos
+  - Placeholder for real-time WebSocket monitoring (coming soon)
+- CLI and utilities in `src/python_mastery_portfolio/` (VIN helpers, ML utilities, monitoring helpers).
+- Tests under `tests/` with focused unit coverage for core utilities.
+
+What's new
+- The Streamlit demo has been polished: added a sidebar with demo controls, sample VIN/CSV presets, and local fallbacks so the demo works offline and is recruiter-friendly. The app now emphasizes quick, explorable outputs and full JSON expanders for transparency.
+
+Quick repo map
+- `demo/` — interactive demo app and demo assets
+- `src/python_mastery_portfolio/` — package modules and CLI
+- `tests/` — pytest tests
+- `benchmarks/` — small benchmarking examples
+
+Next ideas (planned)
+- Add a deployable FastAPI example with OpenAPI and Docker
+- Add CI workflows to auto-deploy the demo and enforce linting/typing
+- Expand benchmarking and add explainability reports for ML pipelines
+
+About me
+- Volodymyr Minutin — Computer Science student and Python developer. Focus: clean code, strong typing, practical demos, and automation.
+
+Contact
+- Email: volodymyr.minutin@gmail.com
+- GitHub: https://github.com/exclipsee
+
+License: MIT
+# python-mastery-portfolio
+
 Small, well-tested Python utilities and demos for data science, machine
 learning and deployment. The repo is intentionally lightweight so examples run
 quickly on a developer machine or CI.

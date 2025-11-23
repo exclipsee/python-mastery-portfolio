@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 import requests
@@ -39,9 +40,38 @@ class FibResult:
     value: int
 
 
+# Try to import local VIN helpers for offline/demo fallback
+try:
+    from python_mastery_portfolio.vin import decode_vin, is_valid_vin  # type: ignore
+except Exception:
+    decode_vin = None  # type: ignore
+    is_valid_vin = None  # type: ignore
+
+
+st.set_page_config(page_title="Python Mastery Demo", layout="wide")
 st.title("Python Mastery Demo")
-st.write("Call the FastAPI Fibonacci and VIN endpoints")
+st.write(
+    "Call the FastAPI Fibonacci and VIN endpoints — or use local fallbacks for an offline demo."
+)
 st.caption(f"Using API base URL: {API_URL}")
+
+# Sidebar controls
+with st.sidebar:
+    st.header("Demo Controls")
+    use_local = st.checkbox("Use local fallback (no API)", value=True)
+    st.markdown("---")
+    st.markdown("**Sample data**")
+    sample_vin = st.selectbox(
+        "Example VIN",
+        (
+            "1HGCM82633A004352",
+            "JHMFA16586S000000",
+            "WVWZZZ1JZXW000000",
+        ),
+    )
+    sample_csv = st.selectbox("Example CSV", ("Small scores", "Products sample", "Empty"))
+    st.markdown("---")
+    st.write("Project: python-mastery-portfolio")
 
 
 def _handle_request(
@@ -90,66 +120,108 @@ def _download_request(
         return None
     return r.content
 
+
+def _local_fib(n: int) -> dict[str, int]:
+    """Compute Fibonacci locally as a fallback for demo purposes."""
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return {"n": n, "value": a}
+
+
+def _local_excel_bytes(rows: list[list[str]]) -> bytes:
+    """Return CSV bytes for download as a lightweight local fallback.
+
+    This keeps the demo dependency-free while still allowing a file download.
+    """
+    sio = io.StringIO()
+    for r in rows:
+        sio.write(",".join(map(str, r)) + "\n")
+    return sio.getvalue().encode("utf-8")
+
+
 st.header("Fibonacci")
-n = st.number_input("n", min_value=0, value=10, step=1)
-if st.button("Compute Fibonacci"):
-    data = _handle_request(requests.get, f"{API_URL}/fib/{n}")
-    if data is not None:
-        st.code(json.dumps(data, indent=2))
-
-st.header("VIN Validate")
-vin = st.text_input("VIN", "1HGCM82633A004352")
-if st.button("Validate VIN"):
-    data = _handle_request(requests.post, f"{API_URL}/vin/validate", json={"vin": vin})
-    if data is not None:
-        st.code(json.dumps(data, indent=2))
-
-st.caption("Set API_URL in .streamlit/secrets.toml to point to a deployed API")
-
-st.header("VIN Decode")
-vin_dec = st.text_input("VIN to decode", "1HGCM82633A004352")
-if st.button("Decode VIN"):
-    data = _handle_request(requests.post, f"{API_URL}/vin/decode", json={"vin": vin_dec})
-    if data is not None:
-        # Show selected fields prominently
-        cols = st.columns(4)
-        cols[0].metric("Valid", str(data.get("valid")))
-        cols[1].metric("WMI", data.get("wmi", ""))
-        cols[2].metric("Brand", data.get("brand", ""))
-        cols[3].metric("Year", str(data.get("model_year", "")))
-
-        cdv = data.get("check_digit_valid")
-        if cdv is False:
-            st.warning(
-                "Check digit did not validate. Some regions/manufacturers "
-                "(including certain EU VINs) do not use ISO 3779 check digits "
-                "consistently. The VIN can still be structurally valid."
-            )
-        cands = data.get("model_year_candidates") or []
-        if not data.get("model_year") and cands:
-            st.info(
-                "Possible model years based on standard cycles: "
-                + ", ".join(map(str, cands))
-            )
-        notes = data.get("notes") or []
-        for n in notes:
-            st.info(n)
-        st.subheader("Full JSON")
-        st.code(json.dumps(data, indent=2))
+col_left, col_right = st.columns([1, 2])
+with col_left:
+    n = st.number_input("n", min_value=0, value=10, step=1)
+    if st.button("Compute Fibonacci", key="fib_compute"):
+        if use_local:
+            data = _local_fib(int(n))
+        else:
+            data = _handle_request(requests.get, f"{API_URL}/fib/{n}")
+        if data is not None:
+            st.success(f"F({data.get('n')}) = {data.get('value')}")
+            with st.expander("Full JSON"):
+                st.code(json.dumps(data, indent=2))
 
 
-st.header("Export to Excel")
-st.write("Paste CSV data (comma-separated) or small table. We'll generate an .xlsx file.")
-csv_text = st.text_area(
-    "CSV input",
-    "Name,Score\nAlice,95\nBob,90",
-    height=120,
-)
+with col_right:
+    st.markdown("**Quick notes**")
+    st.write(
+        "This demo computes Fibonacci either by calling the project's API or using a local fallback. "
+        "Use the sidebar to toggle the behavior and select sample data."
+    )
+
+
+st.header("VIN Validate & Decode")
+vin_default = sample_vin or "1HGCM82633A004352"
+vin = st.text_input("VIN", vin_default)
+col_v1, col_v2 = st.columns(2)
+with col_v1:
+    if st.button("Validate VIN", key="vin_validate"):
+        if use_local and is_valid_vin is not None:
+            valid = is_valid_vin(vin)
+            st.write("Valid:" , valid)
+            st.code(json.dumps({"vin": vin, "valid": valid}, indent=2))
+        else:
+            data = _handle_request(requests.post, f"{API_URL}/vin/validate", json={"vin": vin})
+            if data is not None:
+                st.code(json.dumps(data, indent=2))
+
+with col_v2:
+    if st.button("Decode VIN", key="vin_decode"):
+        if use_local and decode_vin is not None:
+            dec = decode_vin(vin)
+            # dataclass -> dict
+            try:
+                decd = asdict(dec)
+            except Exception:
+                # Fallback to __dict__ if asdict not applicable
+                decd = getattr(dec, "__dict__", {})
+            cols = st.columns(4)
+            cols[0].metric("Valid", str(decd.get("valid")))
+            cols[1].metric("WMI", decd.get("wmi", ""))
+            cols[2].metric("Brand", decd.get("brand", ""))
+            cols[3].metric("Year", str(decd.get("model_year", "")))
+            with st.expander("Full JSON"):
+                st.code(json.dumps(decd, indent=2))
+        else:
+            data = _handle_request(requests.post, f"{API_URL}/vin/decode", json={"vin": vin})
+            if data is not None:
+                cols = st.columns(4)
+                cols[0].metric("Valid", str(data.get("valid")))
+                cols[1].metric("WMI", data.get("wmi", ""))
+                cols[2].metric("Brand", data.get("brand", ""))
+                cols[3].metric("Year", str(data.get("model_year", "")))
+                with st.expander("Full JSON"):
+                    st.code(json.dumps(data, indent=2))
+
+
+st.header("Export to Excel (lightweight)")
+st.write("Paste CSV data (comma-separated) or small table. We'll generate a downloadable file.")
+if sample_csv == "Small scores":
+    default_csv = "Name,Score\nAlice,95\nBob,90"
+elif sample_csv == "Products sample":
+    default_csv = "Product,Price,Stock\nWidget,19.99,10\nGadget,29.99,5"
+else:
+    default_csv = ""
+
+csv_text = st.text_area("CSV input", default_csv, height=140)
 col1, col2 = st.columns([1, 1])
-download_fname = col1.text_input("File name", value="export.xlsx")
+download_fname = col1.text_input("File name", value="export.csv")
 delimiter = col2.text_input("Delimiter", value=",")
 
-if st.button("Generate Excel"):
+if st.button("Generate File", key="gen_file"):
     # Parse CSV text into rows of strings
     rows: list[list[str]] = []
     for line in csv_text.splitlines():
@@ -159,29 +231,35 @@ if st.button("Generate Excel"):
     if not rows:
         st.warning("No rows to export.")
     else:
-        data = _download_request(
-            requests.post,
-            f"{API_URL}/excel/export",
-            json={"rows": rows},
-        )
+        if use_local:
+            data = _local_excel_bytes(rows)
+            mime = "text/csv"
+        else:
+            data = _download_request(
+                requests.post, f"{API_URL}/excel/export", json={"rows": rows}
+            )
+            mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         if data is not None:
             st.download_button(
-                label="Download Excel",
+                label="Download file",
                 data=data,
-                file_name=download_fname or "export.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                file_name=download_fname or "export.csv",
+                mime=mime,
             )
 
 
 st.header("Real-Time System Monitoring")
-st.write("Live system metrics from the API server via WebSocket.")
+st.write("Live system metrics from the API server via WebSocket (coming soon).")
 
 # Simple monitoring section with basic metrics display
-if st.button("Get Current WebSocket Connections"):
+if st.button("Get Current WebSocket Connections", key="get_ws"):
     try:
-        data = _handle_request(requests.get, f"{API_URL}/monitor/connections")
-        if data is not None:
-            st.metric("Active WebSocket Connections", data.get("active_connections", 0))
+        if use_local:
+            st.info("Local demo: start the API to view live WebSocket metrics.")
+        else:
+            data = _handle_request(requests.get, f"{API_URL}/monitor/connections")
+            if data is not None:
+                st.metric("Active WebSocket Connections", data.get("active_connections", 0))
     except Exception as e:
         st.error(f"Failed to get connection count: {e}")
 
@@ -189,6 +267,7 @@ st.info(
     "📊 **Coming Soon**: Real-time charts with live CPU, memory, and disk usage "
     "via WebSocket streaming!"
 )
+
 st.write("""
 To see the real-time monitoring in action:
 1. Start the API server: `uvicorn python_mastery_portfolio.api:app --port 8000`
