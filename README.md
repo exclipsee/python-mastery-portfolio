@@ -241,42 +241,6 @@ pip install -e .[demo]
 streamlit run demo/streamlit_app.py
 ```
 
-Configuration:
-
-- The app resolves the API base URL in this order: environment variable `API_URL` > Streamlit `secrets.toml` > default `http://localhost:8000`.
-- To configure secrets, create either `%USERPROFILE%/.streamlit/secrets.toml` or `demo/.streamlit/secrets.toml`:
-
-```
-API_URL = "http://localhost:8000"
-```
-
-Alternatively, set an environment variable before launching Streamlit:
-
-```powershell
-$env:API_URL = "http://localhost:8000"
-streamlit run demo/streamlit_app.py
-```
-
-Demo includes VIN decode UI calling `/vin/decode` to show WMI/region/year/plant details.
-
-## About me
-
-- I’m Volodymyr Minutin — a Computer Science student and Python developer with ~4 years of experience.
-- I love building automotive‑related tools in Python (I’m a car enthusiast).
-- Tools I’m comfortable with include Python, CLI design (Typer), testing (pytest), type checking (mypy), and automation/CI.
-- I also have practical skills with MS Office (especially Excel) and can automate workflows end‑to‑end.
-- Languages: Russian (native), Ukrainian (native), Polish (C2), English (C1), German (B1).
-
-## How I work
-
-- Favor clear APIs, small modules, and strong typing for maintainability.
-- Treat tooling as part of the product: formatting, linting, typing, and tests run locally and in CI.
-- Keep examples practical and focused; include a CLI for fast manual testing.
-
-## CI status
-
-CI runs on GitHub Actions (see `.github/workflows/ci.yml`). The badge above reflects the latest status on GitHub once the repo is pushed.
-
 ## Contact
 
 - Email: volodymyr.minutin@gmail.com
