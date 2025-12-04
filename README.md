@@ -32,115 +32,81 @@ About me
 - Volodymyr Minutin — Computer Science student and Python developer. Focus: clean code, strong typing, practical demos, and automation.
 
 Contact
-- Email: volodymyr.minutin@gmail.com
-- GitHub: https://github.com/exclipsee
+---
+# Python Mastery Portfolio 🚗⚙️
 
-License: MIT
-# python-mastery-portfolio
+[![CI](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/exclipsee/python-mastery-portfolio/actions) ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
-Small, well-tested Python utilities and demos for data science, machine
-learning and deployment. The repo is intentionally lightweight so examples run
-quickly on a developer machine or CI.
+A compact collection of practical Python utilities, a small CLI, a demo
+Streamlit app, and example ingestion/connectors for experimenting with
+embeddings/indexing and lightweight ML pipelines.
 
-Core highlights
-- Lightweight CLI and utilities under `src/python_mastery_portfolio/`
-- Data validation: `data/sample_data.csv` + `src/.../data_validation.py` (pandas
-  checks with optional Great Expectations support)
-- ML fundamentals helper: `src/.../ml_utils.py` (train/test split, k-fold CV,
-  accuracy/precision/recall/F1/MSE/ROC-AUC implementations)
-- Demo apps under `demo/` and small benchmarks under `benchmarks/`
+Why this repo?
+- Fast to run locally — designed for quick demos during interviews or tech
+	walkthroughs.
+- Focus on clean, typed code, tests, and reproducible developer tooling.
 
-Quick start (PowerShell)
+Highlights ✨
+- CLI: `pm-portfolio` — Fibonacci, VIN tools, monitoring, and ingest helpers.
+- Demo: `demo/streamlit_app.py` for quick interactive exploration.
+- Connectors: Filesystem + SQLite → JSONL (ready for embedding/indexing).
+- Monitoring: WebSocket metrics + Prometheus-style endpoints for demos.
+
+Quickstart (PowerShell)
 ```powershell
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -U pip
-pip install -r requirements.txt --upgrade || pip install pandas pytest pytest-cov
-$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
+pip install -e .[dev]
 pytest -q
 ```
 
-Run only validation tests:
+Try the demo
 ```powershell
-$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
-pytest -q tests/test_data_validation.py
+pip install -e .[demo]
+streamlit run demo/streamlit_app.py
 ```
 
-Run only ML utils tests:
+Small examples
+- Ingest a folder:
 ```powershell
-$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
-pytest -q tests/test_ml_utils.py
+pm-portfolio ingest ./docs --kind fs --output docs.jsonl
+```
+- Ingest a SQLite table:
+```powershell
+pm-portfolio ingest data.db --kind sqlite --table documents --output data.jsonl
 ```
 
-Next ideas
-- Add a FastAPI model-serving example with Docker and CI
-- Integrate Great Expectations suites into `data/expectations/`
-- Add a demo notebook showing CV, ROC and PR curves using the ML utilities
+Developer notes
+- Run lint + types:
+```powershell
+ruff check src tests
+mypy src
+```
+- Fix a file with ruff:
+```powershell
+python -m ruff check --fix src/python_mastery_portfolio/connectors.py
+```
 
-Contributing
-- PRs welcome. Keep changes small and include tests.
+Repo layout
+- `src/python_mastery_portfolio/` — code + CLI
+- `demo/` — Streamlit app
+- `tests/` — pytest
+- `benchmarks/`, `cdk/` — optional extras
+
+Roadmap (short)
+- Add embeddings + FAISS/pgvector indexer
+- Retrieval API (ingest → index → query) and demo notebook
+
+Contact
+- Email: `volodymyr.minutin@gmail.com`
+- GitHub: `https://github.com/exclipsee`
 
 License: MIT
-# Python Mastery Portfolio
 
-I built this repository to showcase how I write Python: clean, typed, tested, and production‑ready. It includes a small CLI, idiomatic modules, and full developer tooling so you can quickly evaluate how I work.
+---
 
-[![CI](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/exclipsee/python-mastery-portfolio/actions)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
-![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
-![ruff](https://img.shields.io/badge/lint-ruff-%23cc0000)
-![mypy](https://img.shields.io/badge/types-mypy-2A6DB2)
-
-## What this repo demonstrates
-
-
-## New: Data Validation & Quality Checks
-
-I added a lightweight data validation feature to help ensure training and
-inference datasets meet expected schema and value ranges. The implementation
-lives in `src/python_mastery_portfolio/data_validation.py` and includes:
-
-- `load_sample_data()` — helper that reads `data/sample_data.csv` shipped with the repo.
-- `validate_schema(df)` — pandas-based checks for required columns, types,
-  nulls, categories and simple range checks (0..100 for numeric features in
-  the sample).
-- `run_validation_on_csv()` — will use Great Expectations if installed,
-  otherwise falls back to the lightweight checks.
-
-There is a sample dataset (`data/sample_data.csv`) and unit tests that exercise
-the validation logic (`tests/test_data_validation.py`). This makes it easy to
-hook validation into training or inference paths in the future.
-
-How to run the validation tests locally (PowerShell):
-
-```powershell
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-pip install -U pip
-pip install -r requirements.txt --upgrade || pip install pandas pytest pytest-cov
-$env:PYTHONPATH = Join-Path (Get-Location).Path 'src'
-pytest -q tests/test_data_validation.py
-```
-
-Optional: install Great Expectations to run the GE-backed checks:
-
-```powershell
-pip install great_expectations
-python -c "from python_mastery_portfolio.data_validation import run_validation_on_csv; print(run_validation_on_csv())"
-```
-
-## Highlights
-
-- Python >= 3.10
-- Modern project layout (`src/`)
-- 100% type-hinted public APIs with docstrings
-- Tests cover examples and behavior, with full coverage across modules
-
-## Quick start
-
-Create a virtual environment and install in editable mode with developer tools:
-
-```powershell
-python -m venv .venv
-. .venv\Scripts\Activate.ps1
+Want this pushed? Reply `commit and push` and I'll commit & push the README update for you.
 pip install -U pip
 pip install -e .[dev]
 ```
@@ -196,57 +162,113 @@ pm-portfolio search --value 42 1 2 3 40 41 42 100
 
 - Add documents, semantic search, and ask a question over your text using a deterministic embedder for demos/tests.
 - Endpoints:
-	- `POST /qa/reset` — clear store
-	- `POST /qa/documents` — body: JSON array of strings; returns ids
-	- `POST /qa/search?query=...&k=5` — returns top-k hits
-	- `POST /qa/ask?question=...&k=3` — returns naive answer + hits
-- Optional extras: `pip install -e .[rag]` to experiment with sentence-transformers/FAISS.
+	---
+	# Python Mastery Portfolio
 
-### CI Matrix
+	[![CI](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/exclipsee/python-mastery-portfolio/actions)
+	![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
-- GitHub Actions runs on Python 3.10, 3.11, 3.12, 3.13
+	Practical, well-tested Python utilities and demos showcasing clean code, typing,
+	and developer tooling. The project includes a small CLI, a demo Streamlit app,
+	example FastAPI endpoints, and connector primitives for ingestion workflows.
 
-### Optional: Publish to TestPyPI
+	**Quick Links**
+	- **Source:** `src/python_mastery_portfolio/`
+	- **Demo app:** `demo/streamlit_app.py`
+	- **Tests:** `tests/`
+	- **CLI entry:** `src/python_mastery_portfolio/cli.py`
 
-- Workflow `.github/workflows/publish-testpypi.yml` publishes on tag like `v0.1.0`
-- Add a secret `TEST_PYPI_API_TOKEN` in GitHub repo settings to enable
+	## Features
+	- CLI utilities: Fibonacci, VIN helpers, monitoring and a small ML demo pipeline.
+	- Demo: a Streamlit UI for interactively exercising features and local fallbacks.
+	- Connectors: filesystem and SQLite connectors that output JSONL for downstream
+		embedding/indexing workflows.
+	- Monitoring: optional WebSocket-based system metrics and Prometheus-style
+		endpoints for demo purposes.
 
-### Containers & Cloud
+	## Quickstart (Windows PowerShell)
+	Create and activate a virtual environment, install development extras, and run
+	tests:
 
-- Dockerfile included to run the API with Uvicorn:
+	```powershell
+	python -m venv .venv
+	.\.venv\Scripts\Activate.ps1
+	pip install -U pip
+	pip install -e .[dev]
+	pytest -q
+	```
 
-```powershell
-docker build -t python-mastery-portfolio .
-docker run -p 8000:8000 python-mastery-portfolio
-```
+	Run the Streamlit demo (optional):
 
-- Coverage is uploaded via GitHub Actions to Codecov (configure in repo settings).
+	```powershell
+	pip install -e .[demo]
+	streamlit run demo/streamlit_app.py
+	```
 
-### AWS CDK (optional)
+	Run the API locally:
 
-I include an AWS CDK example (in `cdk/`) to deploy the Dockerized API to ECS Fargate with an ALB in `eu-central-1` (Frankfurt). This requires an AWS account and one-time CDK bootstrap in your account/region. See `cdk/README.md` for steps.
+	```powershell
+	uvicorn python_mastery_portfolio.api:app --reload
+	```
 
-Run the API locally (optional):
+	## Examples
 
-```powershell
-uvicorn python_mastery_portfolio.api:app --reload
-```
+	- Ingest a directory using the CLI connector (produces `out.jsonl`):
 
-### Frontend demo (optional)
+	```powershell
+	pm-portfolio ingest ./docs --kind fs --output docs.jsonl
+	```
 
-- Install demo extras and run the Streamlit app:
+	- Ingest a SQLite table:
 
-```powershell
-pip install -e .[demo]
-streamlit run demo/streamlit_app.py
-```
+	```powershell
+	pm-portfolio ingest data.db --kind sqlite --table documents --output data.jsonl
+	```
 
-## Contact
+	- WebSocket monitoring (broadcasts system metrics every 2s):
 
-- Email: volodymyr.minutin@gmail.com
-- LinkedIn: https://www.linkedin.com/in/volodymyr-minutin-380310364
-- GitHub: https://github.com/exclipsee
+	```
+	ws://localhost:8000/ws/metrics
+	```
 
-## License
+	## Development
+	- Run the full quality suite:
 
-MIT
+	```powershell
+	pytest
+	ruff check src tests
+	mypy src
+	```
+
+	- Lint/fix a file with ruff:
+
+	```powershell
+	python -m ruff check --fix src/python_mastery_portfolio/connectors.py
+	```
+
+	## Structure
+	- `src/python_mastery_portfolio/` — package modules (connectors, API, CLI)
+	- `demo/` — Streamlit demo
+	- `tests/` — unit tests (pytest)
+	- `benchmarks/` — small benchmarking scripts
+	- `cdk/` — optional AWS CDK deployment example
+
+	## Next steps (roadmap)
+	- Add embedding and indexing primitives (FAISS / pgvector adapters).
+	- Build a small retrieval API (ingest → index → query) and demo notebook.
+	- Add additional connectors (HTTP/Confluence, Postgres) and e2e tests.
+
+	## Contributing
+	PRs welcome — keep changes focused and include tests. See `pyproject.toml`
+	for formatting and typing rules (ruff, black, mypy).
+
+	## Contact
+	- Email: `volodymyr.minutin@gmail.com`
+	- GitHub: `https://github.com/exclipsee`
+
+	## License
+	MIT
+
+	---
+
+	If you'd like, I can also commit and push this change for you. Say "commit and push" and I'll run the git commands.
