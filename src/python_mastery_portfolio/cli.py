@@ -3,6 +3,7 @@ from __future__ import annotations
 import typer
 
 from .algorithms import binary_search, fibonacci
+from .connectors import Connector, FileSystemConnector, SQLiteConnector
 from .excel_tools import write_rows_to_excel
 from .ml_pipeline import (
     add_bias_feature,
@@ -194,3 +195,29 @@ def monitor_ping_cmd(
             _t.sleep(interval)
     if worst is not None:
         typer.echo(f"worst={worst:.3f}s")
+
+
+@app.command("ingest")
+def ingest(
+    source: str = typer.Argument(..., help="Source path or DB connection string"),
+    kind: str = typer.Option("fs", "--kind", help="Connector kind: fs|sqlite"),
+    output: str = typer.Option("out.jsonl", "--output", help="Output JSONL path"),
+    table: str | None = typer.Option(None, "--table", help="Table name (for sqlite)"),
+) -> None:
+    """Run a connector to produce JSONL output. Supported kinds: fs, sqlite.
+
+    Examples:
+      pm-portfolio ingest ./docs --kind fs --output docs.jsonl
+      pm-portfolio ingest data.db --kind sqlite --table documents --output data.jsonl
+    """
+    conn: Connector
+    if kind == "fs":
+        conn = FileSystemConnector(source)
+    elif kind == "sqlite":
+        if not table:
+            raise typer.BadParameter("--table is required for sqlite connectors")
+        conn = SQLiteConnector(source, table)
+    else:
+        raise typer.BadParameter("unknown connector kind")
+    path = conn.to_jsonl(output)
+    typer.echo(str(path))
