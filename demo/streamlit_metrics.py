@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import streamlit as st
 
-
 st.set_page_config(page_title="Live Metrics", layout="wide")
 st.title("Live System Metrics (WebSocket)")
-st.write("This demo opens a WebSocket from your browser to the API `/ws/metrics` endpoint and renders live charts.")
+st.write(
+  "This demo opens a WebSocket from your browser to the API `/ws/metrics`"
+  " endpoint and renders live charts."
+)
 
 ws_default = st.text_input("WebSocket URL", value="ws://localhost:8000/ws/metrics")
 st.markdown("---")
@@ -17,9 +19,23 @@ html = f"""
     <meta charset="utf-8" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body {{ font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; }}
-      .grid {{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 12px; }}
-      .card {{ background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
+      body {{
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 0;
+        padding: 0;
+      }}
+      .grid {{
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        padding: 12px;
+      }}
+      .card {{
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      }}
     </style>
   </head>
   <body>
@@ -45,9 +61,21 @@ html = f"""
         }});
       }}
 
-      const cpuChart = makeChart(document.getElementById('cpu').getContext('2d'), 'CPU %', 'rgba(255,99,132,1)');
-      const memChart = makeChart(document.getElementById('memory').getContext('2d'), 'Memory %', 'rgba(54,162,235,1)');
-      const diskChart = makeChart(document.getElementById('disk').getContext('2d'), 'Disk %', 'rgba(75,192,192,1)');
+      const cpuChart = makeChart(
+        document.getElementById('cpu').getContext('2d'),
+        'CPU %',
+        'rgba(255,99,132,1)'
+      );
+      const memChart = makeChart(
+        document.getElementById('memory').getContext('2d'),
+        'Memory %',
+        'rgba(54,162,235,1)'
+      );
+      const diskChart = makeChart(
+        document.getElementById('disk').getContext('2d'),
+        'Disk %',
+        'rgba(75,192,192,1)'
+      );
 
       function pushSample(chart, label, value) {{
         chart.data.labels.push(label);

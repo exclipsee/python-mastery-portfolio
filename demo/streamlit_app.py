@@ -158,9 +158,10 @@ with col_left:
 with col_right:
     st.markdown("**Quick notes**")
     st.write(
-        "This demo computes Fibonacci either by calling the project's API or using a local fallback. "
-        "Use the sidebar to toggle the behavior and select sample data."
+        "This demo computes Fibonacci either by calling the project's API"
+        " or using a local fallback."
     )
+    st.write("Use the sidebar to toggle the behavior and select sample data.")
 
 
 st.header("VIN Validate & Decode")
