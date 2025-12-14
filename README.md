@@ -16,6 +16,24 @@ locally in minutes.
 - [Quick start](#quick-start)
 - [Try the demo](#try-the-demo)
 - [Examples (CLI & API)](#examples-cli--api)
+# Overview
+
+Python Mastery Portfolio is a compact, well-tested collection of practical
+Python examples and small services. It demonstrates clean, typed code, a
+developer-friendly CLI, a Streamlit demo, lightweight FastAPI endpoints, and
+connector primitives for ingestion workflows (filesystem / SQLite → JSONL).
+
+This repository is intended as a short, interview-ready showcase you can run
+locally in minutes.
+
+---
+
+## Table of contents
+
+- [Highlights](#highlights)
+- [Quick start](#quick-start)
+- [Try the demo](#try-the-demo)
+- [Examples (CLI & API)](#examples-cli--api)
 - [Development](#development)
 - [Project structure](#project-structure)
 - [Roadmap](#roadmap)
@@ -27,10 +45,10 @@ locally in minutes.
 ## Highlights
 
 - Small CLI (`pm-portfolio`) with practical commands (Fibonacci, VIN tools,
-	monitoring, ingestion helpers).
+  monitoring, ingestion helpers).
 - Streamlit demo for fast hands-on evaluation without deep setup.
 - Connector primitives that export JSONL for downstream embedding/indexing
-	workflows (Filesystem, SQLite).
+  workflows (Filesystem, SQLite).
 - Minimal FastAPI examples and WebSocket-based monitoring helpers for demos.
 
 ---
@@ -95,9 +113,9 @@ uvicorn python_mastery_portfolio.api:app --reload
 
 - WebSocket monitoring (broadcasts system metrics every 2s):
 
-```
+``
 ws://localhost:8000/ws/metrics
-```
+``
 
 ---
 
