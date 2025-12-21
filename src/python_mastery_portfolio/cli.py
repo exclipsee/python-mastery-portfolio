@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import typer
+from typing import Any
+from importlib import metadata as _metadata
 
 from .algorithms import binary_search, fibonacci
 from .connectors import Connector, FileSystemConnector, SQLiteConnector
@@ -14,8 +16,31 @@ from .ml_pipeline import (
 )
 from .monitor import ping_url, send_slack_webhook
 from .vin import compute_check_digit, decode_vin, generate_vin, is_valid_vin
+from .logging_utils import configure_logging_from_cli
+from .config import load_config
 
 app = typer.Typer(help="Python Mastery Portfolio CLI")
+
+
+@app.callback(invoke_without_command=True)
+def _global_options(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
+    config: str | None = typer.Option(None, "--config", "-c", help="Path to TOML config file"),
+    json_logs: bool = typer.Option(False, "--json-logs", help="Emit logs in JSON format"),
+) -> None:
+    """Global CLI options: configure logging and optionally load a config file.
+
+    This callback runs before subcommands so `--verbose` and `--config` apply
+    to all commands.
+    """
+    configure_logging_from_cli(verbose=verbose, json_output=json_logs)
+    if config:
+        try:
+            cfg = load_config(config)
+            ctx.obj = {"config": cfg}
+        except Exception as e:
+            raise typer.Exit(code=2)
 
 
 @app.command()
@@ -41,8 +66,18 @@ def search_command(
         raise typer.Exit(code=1)
 
 
-def main() -> None:  # pragma: no cover
+def run() -> None:  # pragma: no cover
     app()
+
+
+@app.command("version")
+def version_cmd() -> None:
+    """Print the package version."""
+    try:
+        ver = _metadata.version("python-mastery-portfolio")
+    except Exception:
+        ver = "0.0.0"
+    typer.echo(ver)
 
 
 @app.command("vin-validate")
