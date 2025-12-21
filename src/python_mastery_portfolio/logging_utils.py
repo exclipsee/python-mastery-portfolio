@@ -5,30 +5,25 @@ import logging
 
 
 class JsonFormatter(logging.Formatter):
+    """Format logs as compact JSON objects for machine consumption."""
+
     def format(self, record: logging.LogRecord) -> str:
         payload = {
+            "ts": self.formatTime(record),
             "level": record.levelname,
-            "message": record.getMessage(),
             "logger": record.name,
+            "msg": record.getMessage(),
         }
         if record.exc_info:
-            payload["exc_info"] = self.formatException(record.exc_info)
-        return json.dumps(payload)
-
-
-def setup_json_logging(level: int = logging.INFO) -> None:
-    handler = logging.StreamHandler()
-    handler.setFormatter(JsonFormatter())
-    root = logging.getLogger()
-    root.setLevel(level)
-    root.handlers = [handler]
+            payload["exc"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=False)
 
 
 def configure_logging_from_cli(verbose: bool = False, json_output: bool = False) -> None:
-    """Configure logging for CLI runs.
+    """Configure root logger for CLI use.
 
-    - If `json_output` is True, use `JsonFormatter` on stdout.
-    - Otherwise, use a simple human-readable format.
+    - `verbose` toggles DEBUG level.
+    - `json_output` emits JSON-formatted logs.
     """
     level = logging.DEBUG if verbose else logging.INFO
     root = logging.getLogger()
@@ -37,6 +32,5 @@ def configure_logging_from_cli(verbose: bool = False, json_output: bool = False)
     if json_output:
         handler.setFormatter(JsonFormatter())
     else:
-        fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s - %(message)s")
-        handler.setFormatter(fmt)
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s - %(message)s"))
     root.handlers = [handler]
