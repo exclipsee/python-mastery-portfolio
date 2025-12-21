@@ -197,4 +197,9 @@ Suggested workflow:
 
 ---
 
-If you approve this README I can commit and push it — reply `commit and push`.
+This README has been updated to include the new `--json-logs` option, the
+`config` loader, and the `pm-portfolio version` command. The demo README lives
+in `demo/README.md` with Streamlit run instructions.
+
+If you want me to commit and push these changes, reply `commit and push` or
+approve below.
