@@ -11,16 +11,17 @@ def _parse_toml_bytes(data: bytes) -> dict[str, Any]:
     Prefer the stdlib `tomllib` (Python 3.11+). If unavailable, try the
     `tomli` backport. Raise RuntimeError if no TOML parser is available.
     """
+    text = data.decode("utf-8")
     try:
         import tomllib  # type: ignore
 
-        return tomllib.loads(data)
+        return tomllib.loads(text)
     except Exception:
         pass
     try:
         import tomli  # type: ignore
 
-        return tomli.loads(data)
+        return tomli.loads(text)
     except Exception:
         pass
     raise RuntimeError("TOML parser not available; install 'tomli' for Python<3.11")
