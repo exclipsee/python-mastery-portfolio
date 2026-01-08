@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse, Response
 
 from .algorithms import fibonacci
-from .doc_qa import QAService
+from .doc_qa import QADocument, QAService
 from .excel_tools import write_rows_to_excel
 from .logging_utils import setup_json_logging
 from .ml_pipeline import TrainedModel, train_linear_regression
@@ -297,15 +297,65 @@ def qa_add_documents(docs: list[str]) -> dict[str, list[int]]:
     return {"ids": ids}
 
 
+class QADocumentIn(BaseModel):
+    id: str = Field(..., min_length=1)
+    text: str = Field(..., min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class QAIngestRequest(BaseModel):
+    documents: list[QADocumentIn]
+    chunk_size: int = Field(default=800, ge=100, le=10_000)
+    chunk_overlap: int = Field(default=100, ge=0, le=5_000)
+    reset: bool = Field(default=False)
+
+
+class QAIngestResponse(BaseModel):
+    status: str
+    ids: list[int]
+    n_chunks: int
+
+
+@app.post(
+    "/qa/ingest",
+    response_model=QAIngestResponse,
+    tags=["rag"],
+    summary="Ingest structured documents (chunked) for offline RAG",
+)
+def qa_ingest(req: QAIngestRequest) -> QAIngestResponse:
+    if req.reset:
+        _qa.reset()
+    docs = [
+        QADocument(id=d.id, text=d.text, metadata={str(k): v for k, v in d.metadata.items()})
+        for d in req.documents
+    ]
+    ids = _qa.add_documents(docs, chunk_size=req.chunk_size, chunk_overlap=req.chunk_overlap)
+    return QAIngestResponse(status="ok", ids=ids, n_chunks=len(ids))
+
+
 @app.post("/qa/search")
 def qa_search(query: str, k: int = 5) -> dict[str, object]:
     hits = _qa.search(query, k=k)
     return {"hits": hits}
 
 
+@app.post("/qa/search_rich")
+def qa_search_rich(query: str, k: int = 5) -> dict[str, object]:
+    hits = _qa.search_rich(query, k=k)
+    payload = [
+        {"id": h.id, "score": h.score, "text": h.text, "meta": h.meta} for h in hits
+    ]
+    return {"hits": payload}
+
+
 @app.post("/qa/ask")
 def qa_ask(question: str, k: int = 3) -> dict[str, object]:
     return _qa.ask(question, k=k)
+
+
+@app.post("/qa/ask_rich")
+def qa_ask_rich(question: str, k: int = 3) -> dict[str, object]:
+    return _qa.ask_rich(question, k=k)
 
 
 @app.post("/qa/reset")

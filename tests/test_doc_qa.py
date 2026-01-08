@@ -33,3 +33,35 @@ def test_doc_qa_flow() -> None:
     assert r.status_code == 200
     data = r.json()
     assert "answer" in data and isinstance(data["hits"], list)
+
+
+def test_doc_qa_rich_ingest_and_ask() -> None:
+    client = TestClient(app)
+    r = client.post(
+        "/qa/ingest",
+        json={
+            "reset": True,
+            "chunk_size": 120,
+            "chunk_overlap": 10,
+            "documents": [
+                {"id": "doc1", "text": "FastAPI is a web framework for building APIs.", "metadata": {"src": "a"}},
+                {"id": "doc2", "text": "Pandas is used for data analysis.", "metadata": {"src": "b"}},
+            ],
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["n_chunks"] >= 1
+
+    r = client.post("/qa/search_rich", params={"query": "What is FastAPI?", "k": 3})
+    assert r.status_code == 200
+    hits = r.json()["hits"]
+    assert isinstance(hits, list) and hits
+    assert "meta" in hits[0]
+
+    r = client.post("/qa/ask_rich", params={"question": "What is FastAPI?", "k": 2})
+    assert r.status_code == 200
+    data = r.json()
+    assert "answer" in data
+    assert isinstance(data.get("hits"), list)

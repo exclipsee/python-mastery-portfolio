@@ -117,6 +117,43 @@ class NaiveIndex:
         return scored[: max(0, k)]
 
 
+def _chunk_text(text: str, *, max_chars: int, overlap: int) -> list[tuple[int, int, str]]:
+    """Chunk text into overlapping windows.
+
+    Returns a list of (start, end, chunk_text) tuples.
+    """
+    if max_chars <= 0:
+        return [(0, len(text), text)]
+    if overlap < 0:
+        overlap = 0
+
+    clean = text.strip("\ufeff")
+    if not clean:
+        return []
+
+    out: list[tuple[int, int, str]] = []
+    start = 0
+    n = len(clean)
+    while start < n:
+        end = min(n, start + max_chars)
+        # Prefer to end on a paragraph/sentence boundary when possible
+        window = clean[start:end]
+        cut = max(window.rfind("\n\n"), window.rfind(". "), window.rfind("\n"))
+        if cut >= max(0, len(window) - 200):
+            end = start + cut + (2 if window[cut:cut + 2] == ". " else 1)
+            end = min(end, n)
+            window = clean[start:end]
+
+        chunk = window.strip()
+        if chunk:
+            out.append((start, end, chunk))
+
+        if end >= n:
+            break
+        start = max(0, end - overlap)
+    return out
+
+
 # Optional advanced components -------------------------------------------------
 
 class SentenceTransformerEmbedder:
@@ -223,23 +260,92 @@ class FaissIndex:
 
 # Service ---------------------------------------------------------------------
 
+
+@dataclass(frozen=True)
+class QADocument:
+    """Structured document for ingestion.
+
+    This mirrors connector output (id/text/metadata) and allows chunked indexing.
+    """
+
+    id: str
+    text: str
+    metadata: dict[str, object]
+
+
+@dataclass(frozen=True)
+class RichHit:
+    id: int
+    score: float
+    text: str
+    meta: dict[str, object] | None
+
+
 class QAService:
     def __init__(self, embedder: Embedder | None = None, index: Index | None = None) -> None:
         self.embedder: Embedder = embedder or SimpleEmbedder()
         self.index: Index = index or NaiveIndex(self.embedder)
+        # Stored texts that are actually indexed (documents or chunks)
         self._docs: list[str] = []
+        # Metadata aligned with _docs in insertion order
+        self._docs_meta: list[dict[str, object] | None] = []
+        # Lookup by current index id
+        self._id_meta: dict[int, dict[str, object]] = {}
 
     def add(self, docs: Iterable[str]) -> list[int]:
         ds = list(docs)
         self._docs.extend(ds)
+        self._docs_meta.extend([None] * len(ds))
         return self.index.add(ds)
+
+    def add_documents(
+        self,
+        docs: Iterable[QADocument],
+        *,
+        chunk_size: int = 800,
+        chunk_overlap: int = 100,
+    ) -> list[int]:
+        """Ingest structured documents with chunking and metadata."""
+        to_add: list[str] = []
+        pending_meta: list[dict[str, object]] = []
+        for doc in docs:
+            chunks = _chunk_text(doc.text, max_chars=chunk_size, overlap=chunk_overlap)
+            if not chunks:
+                continue
+            for chunk_index, (start, end, chunk_text) in enumerate(chunks):
+                to_add.append(chunk_text)
+                pending_meta.append(
+                    {
+                        "doc_id": doc.id,
+                        "chunk_index": chunk_index,
+                        "start": start,
+                        "end": end,
+                        "source": doc.metadata,
+                    }
+                )
+
+        if not to_add:
+            return []
+
+        self._docs.extend(to_add)
+        self._docs_meta.extend(pending_meta)
+        ids = self.index.add(to_add)
+        for id_, meta in zip(ids, pending_meta, strict=True):
+            self._id_meta[id_] = meta
+        return ids
 
     def reset(self) -> None:
         self._docs.clear()
+        self._docs_meta.clear()
+        self._id_meta.clear()
         self.index.reset()
 
     def search(self, query: str, k: int = 5) -> list[tuple[int, float, str]]:
         return self.index.search(query, k=k)
+
+    def search_rich(self, query: str, k: int = 5) -> list[RichHit]:
+        hits = self.search(query, k=k)
+        return [RichHit(id=id_, score=score, text=text, meta=self._id_meta.get(id_)) for id_, score, text in hits]
 
     def ask(self, question: str, k: int = 3) -> dict[str, object]:
         hits = self.search(question, k=k)
@@ -253,6 +359,22 @@ class QAService:
                 best_score = len(overlap)
                 best_answer = " ".join(overlap) if overlap else text[:80]
         return {"answer": best_answer, "hits": hits}
+
+    def ask_rich(self, question: str, k: int = 3) -> dict[str, object]:
+        hits = self.search_rich(question, k=k)
+        best_answer = ""
+        q_toks = set(_tokenize(question))
+        best_score = -1
+        for hit in hits:
+            t_toks = _tokenize(hit.text)
+            overlap = [t for t in t_toks if t in q_toks]
+            if len(overlap) > best_score:
+                best_score = len(overlap)
+                best_answer = " ".join(overlap) if overlap else hit.text[:80]
+        payload_hits = [
+            {"id": h.id, "score": h.score, "text": h.text, "meta": h.meta} for h in hits
+        ]
+        return {"answer": best_answer, "hits": payload_hits}
 
     def configure(self, embedder_name: str, index_name: str) -> None:
         # Instantiate embedder
@@ -274,5 +396,9 @@ class QAService:
         # replace and rebuild with existing docs
         self.embedder = emb
         self.index = idx
+        self._id_meta.clear()
         if self._docs:
-            self.index.add(self._docs)
+            new_ids = self.index.add(list(self._docs))
+            for new_id, meta in zip(new_ids, self._docs_meta, strict=True):
+                if meta is not None:
+                    self._id_meta[new_id] = meta

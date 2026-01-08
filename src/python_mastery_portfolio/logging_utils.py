@@ -34,3 +34,16 @@ def configure_logging_from_cli(verbose: bool = False, json_output: bool = False)
     else:
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s - %(message)s"))
     root.handlers = [handler]
+
+
+def setup_json_logging(level: int | None = None) -> None:
+    """Configure root logger to emit JSON logs.
+
+    This helper is used by the FastAPI app at import time.
+    """
+    root = logging.getLogger()
+    if level is not None:
+        root.setLevel(level)
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    root.handlers = [handler]

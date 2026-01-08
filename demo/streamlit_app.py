@@ -48,6 +48,15 @@ except Exception:
     is_valid_vin = None  # type: ignore
 
 
+# Try to import local QA helpers for offline/demo fallback
+try:
+    from python_mastery_portfolio.doc_qa import QADocument as _QADocument  # type: ignore
+    from python_mastery_portfolio.doc_qa import QAService as _QAService  # type: ignore
+except Exception:
+    _QADocument = None  # type: ignore
+    _QAService = None  # type: ignore
+
+
 st.set_page_config(page_title="Python Mastery Demo", layout="wide")
 st.title("Python Mastery Demo")
 st.write(
@@ -247,6 +256,67 @@ if st.button("Generate File", key="gen_file"):
                 file_name=download_fname or "export.csv",
                 mime=mime,
             )
+
+
+st.header("Document Q&A (Offline RAG)")
+st.write("Ingest a few documents, then ask questions and inspect retrieved chunks.")
+
+default_docs = (
+    "FastAPI is a modern Python web framework for building APIs.\n\n"
+    "Pandas is a library for data analysis and manipulation.\n\n"
+    "scikit-learn provides tools for classical machine learning in Python."
+)
+docs_text = st.text_area("Documents (one per blank line)", value=default_docs, height=140)
+question = st.text_input("Question", value="What is FastAPI?")
+
+col_q1, col_q2 = st.columns([1, 2])
+with col_q1:
+    if st.button("Ingest docs", key="qa_ingest"):
+        docs = [d.strip() for d in docs_text.split("\n\n") if d.strip()]
+        if use_local:
+            if _QAService is None or _QADocument is None:
+                st.error("Local QA modules are not available in this environment.")
+            else:
+                if "qa" not in st.session_state:
+                    st.session_state["qa"] = _QAService()
+                qa = st.session_state["qa"]
+                qa.reset()
+                qdocs = [_QADocument(id=f"doc{idx+1}", text=t, metadata={"source": "streamlit"}) for idx, t in enumerate(docs)]
+                ids = qa.add_documents(qdocs, chunk_size=400, chunk_overlap=50)
+                st.success(f"Ingested {len(ids)} chunks (local)")
+        else:
+            payload = {
+                "reset": True,
+                "chunk_size": 400,
+                "chunk_overlap": 50,
+                "documents": [
+                    {"id": f"doc{idx+1}", "text": t, "metadata": {"source": "streamlit"}}
+                    for idx, t in enumerate(docs)
+                ],
+            }
+            data = _handle_request(requests.post, f"{API_URL}/qa/ingest", json=payload)
+            if data is not None:
+                st.success(f"Ingested {data.get('n_chunks', 0)} chunks (API)")
+
+with col_q2:
+    if st.button("Ask", key="qa_ask"):
+        if use_local:
+            qa = st.session_state.get("qa")
+            if qa is None:
+                st.warning("Ingest docs first.")
+            else:
+                res = qa.ask_rich(question, k=5)
+                st.write("Answer:")
+                st.success(str(res.get("answer", "")))
+                st.write("Hits:")
+                st.json(res.get("hits", []))
+        else:
+            data = _handle_request(requests.post, f"{API_URL}/qa/ask_rich", params={"question": question, "k": 5})
+            if data is not None:
+                st.write("Answer:")
+                st.success(str(data.get("answer", "")))
+                st.write("Hits:")
+                st.json(data.get("hits", []))
 
 
 st.header("Real-Time System Monitoring")
