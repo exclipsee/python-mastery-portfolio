@@ -20,7 +20,6 @@ def _resolve_api_url() -> str:
     env_url = os.getenv("API_URL")
     if env_url:
         return env_url
-    # Next: Streamlit secrets (guarded)
     try:
         secrets_url = st.secrets.get("API_URL")  # type: ignore[assignment]
     except Exception:

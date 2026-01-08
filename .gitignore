@@ -34,7 +34,7 @@ coverage.xml
 .coverage*
 htmlcov/
 
-# IDE/editor
+
 .vscode/
 .idea/
 
