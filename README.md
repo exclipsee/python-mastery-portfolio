@@ -1,3 +1,39 @@
+# python-mastery-portfolio
+
+A compact collection of Python projects and utilities showcasing clean,
+typed, and well-tested code. This repository is curated as a personal
+portfolio to demonstrate practical Python skills.
+
+Quick start
+
+- Run tests:
+
+  `pytest -q`
+
+- Run the small API (development):
+
+  `uvicorn python_mastery_portfolio.api:app --reload --host 127.0.0.1 --port 8000`
+
+- Run a CLI example (after installing the package):
+
+  `pm-portfolio fib 10`
+
+What you'll find
+
+- `src/python_mastery_portfolio/`: library modules, CLI, and API.
+- `tests/`: unit and integration tests that demonstrate design and quality.
+- `benchmarks/`: optional performance experiments.
+
+Contributing / Notes
+
+- The repository is intentionally minimal—it highlights code quality and
+  practical examples rather than infra or CI artifacts.
+- If you want a small runnable demo or single-page showcase, I can add
+  a focused example with clear instructions.
+
+License
+
+MIT — Volodymyr Minutin <volodymyr.minutin@gmail.com>
 # Overview
 
  # python-mastery-portfolio
@@ -26,7 +62,6 @@ Invoke-RestMethod http://localhost:8000/qa/ingest -Method Post -ContentType appl
 	} | ConvertTo-Json -Depth 5
 )
 
-# ask and inspect retrieved chunks + metadata
 Invoke-RestMethod "http://localhost:8000/qa/ask_rich?question=What%20is%20FastAPI%3F&k=5" -Method Post
 ```
 
