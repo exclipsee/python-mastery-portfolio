@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from python_mastery_portfolio.algorithms import binary_search, fibonacci
+from python_mastery_portfolio.algorithms import binary_search, fibonacci, gcd
 
 
 @pytest.mark.parametrize(
@@ -34,3 +34,23 @@ def test_binary_search_found() -> None:
 def test_binary_search_not_found() -> None:
     data = [10, 20, 30]
     assert binary_search(data, 15) == -1
+
+
+@pytest.mark.parametrize(
+    "a,b,expected",
+    [
+        (48, 18, 6),
+        (7, 3, 1),
+        (0, 5, 5),
+        (5, 0, 5),
+        (0, -5, 5),
+        (-27, 9, 9),
+    ],
+)
+def test_gcd(a: int, b: int, expected: int) -> None:
+    assert gcd(a, b) == expected
+
+
+def test_gcd_both_zero() -> None:
+    with pytest.raises(ValueError):
+        gcd(0, 0)

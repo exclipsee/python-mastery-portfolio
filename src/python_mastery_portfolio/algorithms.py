@@ -45,3 +45,27 @@ def binary_search(seq: Sequence[int], value: int) -> int:
         else:
             hi = mid - 1
     return -1
+
+
+def gcd(a: int, b: int) -> int:
+    """Compute the greatest common divisor (GCD) of two integers.
+
+    Uses the iterative Euclidean algorithm. The result is always non-negative.
+
+    Args:
+        a: An integer.
+        b: Another integer.
+
+    Returns:
+        The greatest common divisor of `a` and `b` as a non-negative int.
+
+    Raises:
+        ValueError: If both `a` and `b` are zero (GCD undefined).
+    """
+    a, b = int(a), int(b)
+    a, b = abs(a), abs(b)
+    if a == 0 and b == 0:
+        raise ValueError("gcd(0, 0) is undefined")
+    while b:
+        a, b = b, a % b
+    return a
