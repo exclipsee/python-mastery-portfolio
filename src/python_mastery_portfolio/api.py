@@ -19,7 +19,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse, Response
 
-from .algorithms import fibonacci
+from .algorithms import fibonacci, gcd
 from .doc_qa import QADocument, QAService
 from .excel_tools import write_rows_to_excel
 from .logging_utils import setup_json_logging
@@ -103,6 +103,13 @@ class FibResponse:
     value: int
 
 
+@dataclass
+class GcdResponse:
+    a: int
+    b: int
+    gcd: int
+
+
 @app.get(
     "/fib/{n}",
     response_model=FibResponse,
@@ -121,6 +128,23 @@ def fib_endpoint(n: int) -> FibResponse:
     value = fibonacci(n)
     logger.info("fib", extra={"n": n, "value": value})
     return FibResponse(n=n, value=value)
+
+
+@app.get(
+    "/math/gcd",
+    response_model=GcdResponse,
+    tags=["examples"],
+    summary="Compute the greatest common divisor of two integers",
+)
+def gcd_endpoint(a: int, b: int) -> GcdResponse:
+    from fastapi import HTTPException
+
+    try:
+        value = gcd(a, b)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    logger.info("gcd", extra={"a": a, "b": b, "gcd": value})
+    return GcdResponse(a=a, b=b, gcd=value)
 
 
 class VinRequest(BaseModel):

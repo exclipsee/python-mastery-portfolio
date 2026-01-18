@@ -49,3 +49,17 @@ def test_openapi_contains_examples() -> None:
     ex = vin_schema.get("examples") or vin_schema.get("example") or {}
     # Depending on pydantic/fastapi versions, examples may appear differently; just ensure presence
     assert ex is not None
+
+
+def test_gcd_endpoint() -> None:
+    client = TestClient(app)
+    r = client.get("/math/gcd", params={"a": 48, "b": 18})
+    assert r.status_code == 200
+    data = r.json()
+    assert data == {"a": 48, "b": 18, "gcd": 6}
+
+
+def test_gcd_endpoint_both_zero() -> None:
+    client = TestClient(app)
+    r = client.get("/math/gcd", params={"a": 0, "b": 0})
+    assert r.status_code == 400
