@@ -6,7 +6,7 @@ import typer
 from typing import Any
 from importlib import metadata as _metadata
 
-from .algorithms import binary_search, fibonacci
+from .algorithms import binary_search, fibonacci, gcd, fibonacci_fast
 from .connectors import Connector, FileSystemConnector, SQLiteConnector
 from .excel_tools import write_rows_to_excel
 from .ml_pipeline import (
@@ -51,6 +51,56 @@ def fib(
 ) -> None:
     """Compute the n-th Fibonacci number."""
     typer.echo(fibonacci(n))
+
+
+@app.command("gcd")
+def gcd_cmd(a: int = typer.Argument(..., help="First integer"), b: int = typer.Argument(..., help="Second integer")) -> None:
+    """Compute the greatest common divisor of two integers."""
+    try:
+        res = gcd(a, b)
+    except ValueError as e:
+        raise typer.Exit(code=2)
+    typer.echo(str(res))
+
+
+@app.command("benchmark")
+def benchmark_cmd(
+    n: int = typer.Option(20, "--n", "-n", help="Fibonacci index to compute"),
+    iterations: int = typer.Option(1000, "--iterations", "-i", help="Number of iterations"),
+    warmup: int = typer.Option(3, "--warmup", "-w", help="Warmup runs before timing"),
+    method: str = typer.Option("both", "--method", help="Method: iterative|fast|both"),
+    json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
+) -> None:
+    """Micro-benchmark Fibonacci implementations.
+
+    Measures average milliseconds per call for iterative and/or fast implementations.
+    """
+    import time
+    from statistics import mean
+    from typing import Dict
+
+    def time_func(func) -> Dict[str, float]:
+        for _ in range(warmup):
+            func(n)
+        timings = []
+        for _ in range(iterations):
+            s = time.perf_counter()
+            func(n)
+            timings.append((time.perf_counter() - s) * 1000)
+        return {"iterations": iterations, "total_ms": sum(timings), "avg_ms": mean(timings)}
+
+    out = {}
+    if method in ("iterative", "both"):
+        out["iterative"] = time_func(fibonacci)
+    if method in ("fast", "both"):
+        out["fast"] = time_func(fibonacci_fast)
+
+    if json_out:
+        typer.echo(json.dumps(out, sort_keys=True))
+        return
+
+    for k, v in out.items():
+        typer.echo(f"{k}: iterations={v['iterations']} total_ms={v['total_ms']:.3f} avg_ms={v['avg_ms']:.6f}")
 
 
 @app.command("search")
