@@ -69,3 +69,34 @@ def gcd(a: int, b: int) -> int:
     while b:
         a, b = b, a % b
     return a
+
+
+def fibonacci_fast(n: int) -> int:
+    """Return the n-th Fibonacci number using the fast-doubling method.
+
+    Fast-doubling computes F(n) in O(log n) time by recursively computing
+    (F(k), F(k+1)) and combining results.
+
+    Args:
+        n: Index (0 => 0, 1 => 1, ...). Must be >= 0.
+
+    Returns:
+        The n-th Fibonacci number as an int.
+
+    Raises:
+        ValueError: If n < 0.
+    """
+    if n < 0:
+        raise ValueError("n must be >= 0")
+
+    def _fd(k: int) -> tuple[int, int]:
+        if k == 0:
+            return 0, 1
+        a, b = _fd(k // 2)
+        c = a * ((b << 1) - a)  # c = F(2k) = F(k) * (2*F(k+1) - F(k))
+        d = a * a + b * b       # d = F(2k+1) = F(k)^2 + F(k+1)^2
+        if k & 1:
+            return d, c + d
+        return c, d
+
+    return _fd(n)[0]

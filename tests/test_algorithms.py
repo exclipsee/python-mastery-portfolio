@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from python_mastery_portfolio.algorithms import binary_search, fibonacci, gcd
+from python_mastery_portfolio.algorithms import binary_search, fibonacci, gcd, fibonacci_fast
 
 
 @pytest.mark.parametrize(
@@ -54,3 +54,16 @@ def test_gcd(a: int, b: int, expected: int) -> None:
 def test_gcd_both_zero() -> None:
     with pytest.raises(ValueError):
         gcd(0, 0)
+
+
+@pytest.mark.parametrize(
+    "n",
+    [0, 1, 2, 3, 10, 50, 200, 1000],
+)
+def test_fibonacci_fast_matches_iterative(n: int) -> None:
+    assert fibonacci_fast(n) == fibonacci(n)
+
+
+def test_fibonacci_fast_negative() -> None:
+    with pytest.raises(ValueError):
+        fibonacci_fast(-5)
