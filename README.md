@@ -1,5 +1,8 @@
 # python-mastery-portfolio
 
+[![CI](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A personal collection of compact, well-tested Python utilities and examples
 designed to demonstrate practical engineering skills: typed code, clear
 APIs, benchmarks, and small ML / RAG examples.
