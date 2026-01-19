@@ -72,3 +72,23 @@ or implement CI and badges so the repo looks ready for hiring review.
 
 License: MIT — Volodymyr Minutin <volodymyr.minutin@gmail.com>
 
+**Docker / Quick demo**
+
+You can run the FastAPI demo in a container for an environment-independent demo.
+
+Build and run with Docker:
+
+```bash
+docker build -t pm-portfolio .
+docker run --rm -p 8000:8000 pm-portfolio
+```
+
+Or use docker-compose for local development with live reload:
+
+```bash
+docker-compose up --build
+```
+
+Then visit http://127.0.0.1:8000/docs for the API docs.
+
+
