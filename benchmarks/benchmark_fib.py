@@ -3,12 +3,11 @@ from __future__ import annotations
 import argparse
 import time
 from statistics import mean
-from typing import Dict
 
 from python_mastery_portfolio.algorithms import fibonacci
 
 
-def run(iterations: int = 1000, n: int = 20, warmup: int = 5) -> Dict[str, float]:
+def run(iterations: int = 1000, n: int = 20, warmup: int = 5) -> dict[str, float]:
     """Run a simple benchmark for `fibonacci(n)`.
 
     Returns a dict with total elapsed milliseconds and average milliseconds

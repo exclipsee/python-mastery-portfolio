@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
-
-import typer
-from typing import Any
 from importlib import metadata as _metadata
 
-from .algorithms import binary_search, fibonacci, gcd, fibonacci_fast
+import typer
+
+from .algorithms import binary_search, fibonacci, fibonacci_fast, gcd
+from .config import load_config
 from .connectors import Connector, FileSystemConnector, SQLiteConnector
 from .excel_tools import write_rows_to_excel
+from .logging_utils import configure_logging_from_cli
 from .ml_pipeline import (
     add_bias_feature,
     load_model,
@@ -18,8 +19,6 @@ from .ml_pipeline import (
 )
 from .monitor import ping_url, send_slack_webhook
 from .vin import compute_check_digit, decode_vin, generate_vin, is_valid_vin
-from .logging_utils import configure_logging_from_cli
-from .config import load_config
 
 app = typer.Typer(help="Python Mastery Portfolio CLI")
 
@@ -42,7 +41,7 @@ def _global_options(
             cfg = load_config(config)
             ctx.obj = {"config": cfg}
         except Exception as e:
-            raise typer.Exit(code=2)
+            raise typer.Exit(code=2) from e
 
 
 @app.command()
@@ -54,12 +53,15 @@ def fib(
 
 
 @app.command("gcd")
-def gcd_cmd(a: int = typer.Argument(..., help="First integer"), b: int = typer.Argument(..., help="Second integer")) -> None:
+def gcd_cmd(
+    a: int = typer.Argument(..., help="First integer"),
+    b: int = typer.Argument(..., help="Second integer"),
+) -> None:
     """Compute the greatest common divisor of two integers."""
     try:
         res = gcd(a, b)
     except ValueError as e:
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=2) from e
     typer.echo(str(res))
 
 
@@ -76,10 +78,10 @@ def benchmark_cmd(
     Measures average milliseconds per call for iterative and/or fast implementations.
     """
     import time
+    from collections.abc import Callable
     from statistics import mean
-    from typing import Dict
 
-    def time_func(func) -> Dict[str, float]:
+    def time_func(func: Callable[[int], int]) -> dict[str, float]:
         for _ in range(warmup):
             func(n)
         timings = []
@@ -100,7 +102,8 @@ def benchmark_cmd(
         return
 
     for k, v in out.items():
-        typer.echo(f"{k}: iterations={v['iterations']} total_ms={v['total_ms']:.3f} avg_ms={v['avg_ms']:.6f}")
+        typer.echo(f"{k}: iterations={v['iterations']} total_ms={v['total_ms']:.3f}")
+        typer.echo(f"{k}: avg_ms={v['avg_ms']:.6f}")
 
 
 @app.command("search")
@@ -256,12 +259,8 @@ def ml_predict(
 
 @app.command("monitor-ping")
 def monitor_ping_cmd(
-    url: str = typer.Argument(
-        ..., help="URL to ping, e.g. http://localhost:8000/health"
-    ),
-    iterations: int = typer.Option(
-        1, "--iterations", "-n", min=1, help="Number of pings"
-    ),
+    url: str = typer.Argument(..., help="URL to ping, e.g. http://localhost:8000/health"),
+    iterations: int = typer.Option(1, "--iterations", "-n", min=1, help="Number of pings"),
     interval: float = typer.Option(
         0.5, "--interval", "-i", min=0.0, help="Sleep between pings (s)"
     ),
@@ -312,32 +311,40 @@ def ingest(
 
 @app.command("qa-eval")
 def qa_eval_cmd(
-        docs_jsonl: str = typer.Argument(..., help="Documents JSONL (from pm-portfolio ingest)", metavar="DOCS.jsonl"),
-        eval_jsonl: str = typer.Argument(..., help="Evaluation dataset JSONL", metavar="EVAL.jsonl"),
-        k: int = typer.Option(5, "--k", min=1, help="Top-k retrieval depth"),
-        chunk_size: int = typer.Option(800, "--chunk-size", min=100, help="Chunk size in characters"),
-        chunk_overlap: int = typer.Option(100, "--chunk-overlap", min=0, help="Chunk overlap in characters"),
-        as_json: bool = typer.Option(False, "--json", help="Emit machine-readable JSON"),
+    docs_jsonl: str = typer.Argument(
+        ..., help="Documents JSONL (from pm-portfolio ingest)", metavar="DOCS.jsonl"
+    ),
+    eval_jsonl: str = typer.Argument(..., help="Evaluation dataset JSONL", metavar="EVAL.jsonl"),
+    k: int = typer.Option(5, "--k", min=1, help="Top-k retrieval depth"),
+    chunk_size: int = typer.Option(800, "--chunk-size", min=100, help="Chunk size in characters"),
+    chunk_overlap: int = typer.Option(
+        100, "--chunk-overlap", min=0, help="Chunk overlap in characters"
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Emit machine-readable JSON"),
 ) -> None:
-        """Evaluate offline retrieval quality (recall@k and MRR).
+    """Evaluate offline retrieval quality (recall@k and MRR).
 
-        Dataset JSONL format (one object per line):
-            {"question": "...", "gold_contains": "some phrase"}
-        or:
-            {"question": "...", "gold_doc_id": "<id from docs.jsonl>"}
-        """
-        from .qa_eval import evaluate_from_jsonl
+    Dataset JSONL format (one object per line):
+        {"question": "...", "gold_contains": "some phrase"}
+    or:
+        {"question": "...", "gold_doc_id": "<id from docs.jsonl>"}
+    """
+    from .qa_eval import evaluate_from_jsonl
 
-        res = evaluate_from_jsonl(
-                docs_jsonl=docs_jsonl,
-                eval_jsonl=eval_jsonl,
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-                k=k,
-        )
-        if as_json:
-                typer.echo(json.dumps(res, indent=2, ensure_ascii=False))
-                return
-        typer.echo(f"n={res.get('n')} k={res.get('k')}")
-        typer.echo(f"recall@k={float(res.get('recall_at_k', 0.0)):.3f}")
-        typer.echo(f"mrr={float(res.get('mrr', 0.0)):.3f}")
+    res = evaluate_from_jsonl(
+        docs_jsonl=docs_jsonl,
+        eval_jsonl=eval_jsonl,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        k=k,
+    )
+    if as_json:
+        typer.echo(json.dumps(res, indent=2, ensure_ascii=False))
+        return
+    from typing import cast
+
+    typer.echo(f"n={res.get('n')} k={res.get('k')}")
+    recall_val = cast(float, res.get("recall_at_k", 0.0))
+    mrr_val = cast(float, res.get("mrr", 0.0))
+    typer.echo(f"recall@k={float(recall_val):.3f}")
+    typer.echo(f"mrr={float(mrr_val):.3f}")

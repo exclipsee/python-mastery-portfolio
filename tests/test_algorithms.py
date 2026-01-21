@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from python_mastery_portfolio.algorithms import binary_search, fibonacci, gcd, fibonacci_fast
+from python_mastery_portfolio.algorithms import binary_search, fibonacci, fibonacci_fast, gcd
 
 
 @pytest.mark.parametrize(

@@ -292,28 +292,28 @@ def monitor_ping(url: str) -> PingResult:
 @app.get("/metrics")
 def metrics() -> Response:
     # Lazy import to avoid hard dependency if not installed
-    pc: Any | None
     try:
-        import prometheus_client as pc  # runtime optional
+        import prometheus_client as prometheus  # runtime optional
     except Exception:  # pragma: no cover - import may fail when not installed
-        pc = None
+        prometheus = None
         content_type_latest = "text/plain; version=0.0.4; charset=utf-8"
     else:
-        # pc is a module at this point
+        # prometheus is a module at this point
         content_type_latest = getattr(
-            pc,
+            prometheus,
             "CONTENT_TYPE_LATEST",
             "text/plain; version=0.0.4; charset=utf-8",
         )
 
-    if PING_HISTOGRAM is None or pc is None:
+    if PING_HISTOGRAM is None or prometheus is None:
         # Expose an empty payload to avoid 500s when optional dep is missing
         return Response(content=b"", media_type=content_type_latest)
-    data = pc.generate_latest()
+    data = prometheus.generate_latest()
     return Response(content=data, media_type=content_type_latest)
 
 
 # --- Document Q&A ---
+
 
 @app.post("/qa/documents")
 def qa_add_documents(docs: list[str]) -> dict[str, list[int]]:
@@ -366,9 +366,7 @@ def qa_search(query: str, k: int = 5) -> dict[str, object]:
 @app.post("/qa/search_rich")
 def qa_search_rich(query: str, k: int = 5) -> dict[str, object]:
     hits = _qa.search_rich(query, k=k)
-    payload = [
-        {"id": h.id, "score": h.score, "text": h.text, "meta": h.meta} for h in hits
-    ]
+    payload = [{"id": h.id, "score": h.score, "text": h.text, "meta": h.meta} for h in hits]
     return {"hits": payload}
 
 
@@ -401,6 +399,7 @@ def qa_config(embedder: str, index: str) -> dict[str, str]:
 
 # --- Excel Export ---
 
+
 class ExcelExportRequest(BaseModel):
     rows: list[list[str]]
 
@@ -412,9 +411,7 @@ class ExcelExportRequest(BaseModel):
     responses={
         200: {
             "description": "XLSX file attachment",
-            "content": {
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
-            },
+            "content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}},
         }
     },
 )
@@ -428,9 +425,7 @@ def excel_export_api(req: ExcelExportRequest) -> Response:
         path = Path(td) / "export.xlsx"
         write_rows_to_excel(req.rows, path)
         data = path.read_bytes()
-    headers = {
-        "Content-Disposition": 'attachment; filename="export.xlsx"'
-    }
+    headers = {"Content-Disposition": 'attachment; filename="export.xlsx"'}
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -439,6 +434,7 @@ def excel_export_api(req: ExcelExportRequest) -> Response:
 
 
 # --- ML Endpoints ---
+
 
 class MLPredictRequest(BaseModel):
     rows: list[list[float]]
@@ -499,6 +495,7 @@ def ml_train_api(req: MLTrainRequest) -> MLTrainResponse:
 
 
 # --- WebSocket Real-time Monitoring ---
+
 
 @app.websocket("/ws/metrics")
 async def websocket_metrics(websocket: WebSocket) -> None:

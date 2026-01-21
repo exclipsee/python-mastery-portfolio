@@ -94,7 +94,7 @@ class SimpleEmbedder:
                 idx = h % self.dim
                 vec[idx] += 1.0
             # L2 normalize
-            norm = math.sqrt(float((vec ** 2).sum()))
+            norm = math.sqrt(float((vec**2).sum()))
             if norm > 0:
                 vec /= norm
             out[i] = vec
@@ -131,10 +131,18 @@ class SentenceTransformerEmbedder:
             ) from exc
 
     def embed(self, text: str) -> np.ndarray:
-        return self._model.encode(text, convert_to_numpy=True)
+        from typing import cast
+
+        import numpy as _np
+
+        return cast(_np.ndarray, self._model.encode(text, convert_to_numpy=True))
 
     def embed_batch(self, texts: Iterable[str]) -> np.ndarray:
-        return self._model.encode(list(texts), convert_to_numpy=True)
+        from typing import cast
+
+        import numpy as _np
+
+        return cast(_np.ndarray, self._model.encode(list(texts), convert_to_numpy=True))
 
 
 __all__ = ["SimpleEmbedder", "SentenceTransformerEmbedder"]

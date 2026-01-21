@@ -8,10 +8,10 @@ not exported by default.
 from importlib import metadata as _metadata
 
 from .algorithms import binary_search, fibonacci
-from .utils import timeit
-from .vin import compute_check_digit, is_valid_vin
 from .config import load_config
 from .logging_utils import configure_logging_from_cli
+from .utils import timeit
+from .vin import compute_check_digit, is_valid_vin
 
 try:
     __version__ = _metadata.version("python-mastery-portfolio")

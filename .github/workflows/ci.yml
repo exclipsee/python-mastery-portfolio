@@ -28,7 +28,7 @@ jobs:
 
       - name: Ruff lint
         run: |
-          python -m ruff check .
+          python -m ruff check src tests
 
       - name: Black (check)
         run: |

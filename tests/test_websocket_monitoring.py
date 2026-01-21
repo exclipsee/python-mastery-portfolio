@@ -30,9 +30,9 @@ def test_system_metrics_collection() -> None:
         ]
         mock_psutil.CONN_ESTABLISHED = "ESTABLISHED"
         mock_psutil.boot_time.return_value = 1635724800.0
-        
+
         metrics = get_system_metrics()
-        
+
         assert metrics is not None
         assert metrics.cpu_percent == 25.5
         assert metrics.memory_percent == 60.0
@@ -46,19 +46,19 @@ def test_system_metrics_collection() -> None:
 def test_connection_manager() -> None:
     """Test WebSocket connection manager."""
     manager = ConnectionManager()
-    
+
     # Mock WebSocket
     mock_ws1 = Mock()
     mock_ws2 = Mock()
-    
+
     # Test initial state
     assert manager.get_connection_count() == 0
-    
+
     # Test adding connections
     manager.active_connections.append(mock_ws1)
     manager.active_connections.append(mock_ws2)
     assert manager.get_connection_count() == 2
-    
+
     # Test disconnect
     manager.disconnect(mock_ws1)
     assert manager.get_connection_count() == 1
@@ -79,15 +79,15 @@ def test_websocket_connections_endpoint() -> None:
 def test_websocket_endpoint() -> None:
     """Test WebSocket endpoint connection."""
     client = TestClient(app)
-    
+
     # Test WebSocket connection
     with client.websocket_connect("/ws/metrics") as websocket:
         # Connection should be established
         # We don't need to test actual message sending as that's handled by background task
-        
+
         # Send a test message (though metrics endpoint doesn't expect any)
         websocket.send_text("test")
-        
+
         # The connection should stay open
         # In a real test, we might wait for metrics messages, but for unit test
         # we'll just verify the connection works

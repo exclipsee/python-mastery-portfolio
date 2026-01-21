@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from python_mastery_portfolio.embeddings import (
-    SimpleEmbedder,
     SentenceTransformerEmbedder,
+    SimpleEmbedder,
 )
 
 
@@ -29,13 +29,9 @@ def test_simple_embedder_sklearn_optional() -> None:
 
 
 def test_sentence_transformer_wrapper_optional() -> None:
-    try:
-        import sentence_transformers  # type: ignore
-    except Exception:
-        with pytest.raises(RuntimeError):
-            SentenceTransformerEmbedder()
-    else:
-        emb = SentenceTransformerEmbedder()
-        v = emb.embed("test")
-        assert isinstance(v, (list, np.ndarray))
-        assert len(v) > 0
+    # Skip if sentence-transformers is not installed in the environment.
+    pytest.importorskip("sentence_transformers")
+    emb = SentenceTransformerEmbedder()
+    v = emb.embed("test")
+    assert isinstance(v, (list, np.ndarray))
+    assert len(v) > 0

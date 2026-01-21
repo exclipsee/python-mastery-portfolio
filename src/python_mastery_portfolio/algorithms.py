@@ -94,7 +94,7 @@ def fibonacci_fast(n: int) -> int:
             return 0, 1
         a, b = _fd(k // 2)
         c = a * ((b << 1) - a)  # c = F(2k) = F(k) * (2*F(k+1) - F(k))
-        d = a * a + b * b       # d = F(2k+1) = F(k)^2 + F(k+1)^2
+        d = a * a + b * b  # d = F(2k+1) = F(k)^2 + F(k+1)^2
         if k & 1:
             return d, c + d
         return c, d

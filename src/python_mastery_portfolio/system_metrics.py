@@ -17,7 +17,7 @@ except ImportError:
 @dataclass
 class SystemMetrics:
     """System metrics snapshot."""
-    
+
     timestamp: float
     cpu_percent: float
     memory_percent: float
@@ -32,22 +32,22 @@ class SystemMetrics:
 
 def get_system_metrics() -> SystemMetrics | None:
     """Collect current system metrics.
-    
+
     Returns None if psutil is not available.
     """
     if psutil is None:
         return None
-    
+
     try:
         # CPU usage (non-blocking)
         cpu_percent = psutil.cpu_percent(interval=None)
-        
+
         # Memory usage
         memory = psutil.virtual_memory()
         memory_percent = memory.percent
         memory_used_mb = memory.used / (1024 * 1024)
         memory_total_mb = memory.total / (1024 * 1024)
-        
+
         # Disk usage (root/primary partition)
         if hasattr(psutil, "disk_usage"):
             disk = psutil.disk_usage("/")
@@ -56,14 +56,14 @@ def get_system_metrics() -> SystemMetrics | None:
         disk_usage_percent = (disk.used / disk.total) * 100
         disk_used_gb = disk.used / (1024 * 1024 * 1024)
         disk_total_gb = disk.total / (1024 * 1024 * 1024)
-        
+
         # Network connections
         connections = psutil.net_connections(kind="inet")
         active_connections = len([c for c in connections if c.status == psutil.CONN_ESTABLISHED])
-        
+
         # Boot time
         boot_time = psutil.boot_time()
-        
+
         return SystemMetrics(
             timestamp=time.time(),
             cpu_percent=cpu_percent,
@@ -83,7 +83,7 @@ def get_system_metrics() -> SystemMetrics | None:
 
 async def metrics_broadcaster(websocket_manager: Any, interval: float = 2.0) -> None:
     """Continuously broadcast system metrics via WebSocket.
-    
+
     Args:
         websocket_manager: WebSocket connection manager
         interval: Seconds between metric broadcasts
@@ -91,10 +91,7 @@ async def metrics_broadcaster(websocket_manager: Any, interval: float = 2.0) -> 
     while True:
         metrics = get_system_metrics()
         if metrics is not None:
-            payload = {
-                "type": "system_metrics",
-                "data": asdict(metrics)
-            }
+            payload = {"type": "system_metrics", "data": asdict(metrics)}
             await websocket_manager.broadcast(json.dumps(payload))
-        
+
         await asyncio.sleep(interval)

@@ -77,9 +77,27 @@ def is_valid_vin(vin: str) -> bool:
 # --- VIN decoding helpers ---
 
 _YEAR_LETTERS: Final[list[str]] = [
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-    'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S',
-    'T', 'V', 'W', 'X', 'Y',
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "P",
+    "R",
+    "S",
+    "T",
+    "V",
+    "W",
+    "X",
+    "Y",
 ]
 
 
@@ -91,7 +109,7 @@ def get_model_year(code: str) -> int | None:
     if not code:
         return None
     c = code.upper()
-    if c.isdigit() and c in {'1','2','3','4','5','6','7','8','9'}:
+    if c.isdigit() and c in {"1", "2", "3", "4", "5", "6", "7", "8", "9"}:
         return 2000 + int(c)
     if c in _YEAR_LETTERS:
         idx = _YEAR_LETTERS.index(c)
@@ -121,22 +139,31 @@ def get_year_code(year: int) -> str | None:
 
 _REGION_MAP: Final[dict[str, str]] = {
     # First character region overview (coarse)
-    '1': 'North America', '2': 'North America', '3': 'North America',
-    '4': 'North America', '5': 'North America',
-    'J': 'Asia (Japan)', 'K': 'Asia (Korea)', 'L': 'Asia (China)',
-    'M': 'Asia (India)', 'S': 'Europe (UK)', 'T': 'Europe (Switzerland)',
-    'V': 'Europe (France/Spain)', 'W': 'Europe (Germany)',
-    'Y': 'Europe (Nordic)', 'Z': 'Europe (Italy)',
+    "1": "North America",
+    "2": "North America",
+    "3": "North America",
+    "4": "North America",
+    "5": "North America",
+    "J": "Asia (Japan)",
+    "K": "Asia (Korea)",
+    "L": "Asia (China)",
+    "M": "Asia (India)",
+    "S": "Europe (UK)",
+    "T": "Europe (Switzerland)",
+    "V": "Europe (France/Spain)",
+    "W": "Europe (Germany)",
+    "Y": "Europe (Nordic)",
+    "Z": "Europe (Italy)",
 }
 
 _WMI_BRANDS: Final[dict[str, str]] = {
-    '1HG': 'Honda USA',
-    '1FA': 'Ford USA',
-    'JHM': 'Honda Japan',
-    'WVW': 'Volkswagen Germany',
-    'ZFA': 'Fiat Italy',
-    'ZAR': 'Alfa Romeo Italy',
-    'ZFF': 'Ferrari Italy',
+    "1HG": "Honda USA",
+    "1FA": "Ford USA",
+    "JHM": "Honda Japan",
+    "WVW": "Volkswagen Germany",
+    "ZFA": "Fiat Italy",
+    "ZAR": "Alfa Romeo Italy",
+    "ZFF": "Ferrari Italy",
 }
 
 
@@ -169,7 +196,7 @@ def decode_vin(vin: str) -> VinDecoded:
     check_digit_valid: bool | None = None
     if format_ok:
         try:
-            check_digit_valid = (v[8] == compute_check_digit(v))
+            check_digit_valid = v[8] == compute_check_digit(v)
         except Exception:
             check_digit_valid = None
     wmi = v[0:3] if len(v) >= 3 else ""
@@ -177,6 +204,7 @@ def decode_vin(vin: str) -> VinDecoded:
     check_digit = v[8] if len(v) >= 9 else ""
     model_year_code = v[9] if len(v) >= 10 else None
     model_year = get_model_year(model_year_code) if model_year_code else None
+
     # Provide candidates from standard cycles if recognizable
     def _candidates(code: str | None) -> list[int] | None:
         if not code:
@@ -184,7 +212,7 @@ def decode_vin(vin: str) -> VinDecoded:
         c = code.upper()
         cand: list[int] = []
         # Digits 1-9 => 2001..2009 (and possibly 2031..2039)
-        if c in {'1','2','3','4','5','6','7','8','9'}:
+        if c in {"1", "2", "3", "4", "5", "6", "7", "8", "9"}:
             base = 2000 + int(c)
             cand = [base]
             if base <= 2009:
@@ -197,6 +225,7 @@ def decode_vin(vin: str) -> VinDecoded:
             new = 2010 + idx
             return [old, new]
         return None
+
     my_cand = _candidates(model_year_code)
     plant_code = v[10] if len(v) >= 11 else None
     vis = v[9:17] if len(v) >= 17 else v[9:]
@@ -205,7 +234,7 @@ def decode_vin(vin: str) -> VinDecoded:
     brand = _WMI_BRANDS.get(wmi) if wmi else None
     notes: list[str] | None = None
     # Brand-specific note for Fiat EU VINs where year code may not be encoded
-    if brand and brand.startswith('Fiat') and (model_year is None):
+    if brand and brand.startswith("Fiat") and (model_year is None):
         notes = [
             (
                 "Model year not encoded in position 10 for some EU-market Fiat VINs; "
@@ -231,7 +260,7 @@ def decode_vin(vin: str) -> VinDecoded:
     )
 
 
-def _ensure_allowed_chars(s: str, length: int, pad: str = '0') -> str:
+def _ensure_allowed_chars(s: str, length: int, pad: str = "0") -> str:
     s_u = normalize_vin(s)
     s_u = re.sub(r"[^A-HJ-NPR-Z0-9]", pad, s_u)
     if len(s_u) < length:
@@ -239,9 +268,7 @@ def _ensure_allowed_chars(s: str, length: int, pad: str = '0') -> str:
     return s_u[:length]
 
 
-def generate_vin(
-    wmi: str, vds: str, year: int, plant_code: str, serial: str
-) -> str:
+def generate_vin(wmi: str, vds: str, year: int, plant_code: str, serial: str) -> str:
     """Generate a valid VIN from components by computing the check digit.
 
     - wmi: 3 chars
@@ -250,13 +277,13 @@ def generate_vin(
     - plant_code: 1 char (position 11)
     - serial: 6 chars (positions 12-17)
     """
-    wmi3 = _ensure_allowed_chars(wmi, 3, pad='A')
-    vds5 = _ensure_allowed_chars(vds, 5, pad='A')
+    wmi3 = _ensure_allowed_chars(wmi, 3, pad="A")
+    vds5 = _ensure_allowed_chars(vds, 5, pad="A")
     yc = get_year_code(year)
     if yc is None:
         raise ValueError(f"Unsupported year: {year}")
-    plant1 = _ensure_allowed_chars(plant_code, 1, pad='A')
-    serial6 = _ensure_allowed_chars(serial, 6, pad='0')
+    plant1 = _ensure_allowed_chars(plant_code, 1, pad="A")
+    serial6 = _ensure_allowed_chars(serial, 6, pad="0")
     # placeholder 'X' at position 9 for computing the check digit
     partial = wmi3 + vds5 + "X" + yc + plant1 + serial6
     check = compute_check_digit(partial)

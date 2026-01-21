@@ -19,8 +19,7 @@ class Connector(ABC):
     """Abstract connector interface for ingesting documents from a source."""
 
     @abstractmethod
-    def iter_documents(self) -> Iterator[Document]:
-        ...
+    def iter_documents(self) -> Iterator[Document]: ...
 
     def to_jsonl(self, out_path: str | Path) -> Path:
         p = Path(out_path)
@@ -50,7 +49,7 @@ class FileSystemConnector(Connector):
         recursive: bool = True,
     ) -> None:
         self.root = Path(root)
-        self.extensions = [e.lower() for e in (extensions or [".md", ".txt"]) ]
+        self.extensions = [e.lower() for e in extensions or [".md", ".txt"]]
         self.recursive = recursive
 
     def iter_documents(self) -> Iterator[Document]:

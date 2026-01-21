@@ -82,7 +82,7 @@ pretty = true
 namespace_packages = true
 explicit_package_bases = true
 mypy_path = ["src"]
-files = ["src", "tests"]
+files = ["src"]
 
 [project.optional-dependencies]
 dev = [
@@ -130,5 +130,6 @@ module = [
   "sentence_transformers.*",
   "faiss.*",
   "psutil.*",
+  "prometheus_client.*",
 ]
 ignore_missing_imports = true

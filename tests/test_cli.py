@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 from typer.testing import CliRunner
 
@@ -120,6 +120,7 @@ def test_cli_ml_predict_with_coef() -> None:
     vals = [float(v) for v in res.output.strip().split(",")]
     assert len(vals) == 2
 
+
 def test_cli_gcd() -> None:
     runner = CliRunner()
     res = runner.invoke(app, ["gcd", "48", "18"])
@@ -130,7 +131,9 @@ def test_cli_gcd() -> None:
 def test_cli_benchmark_iterative_and_fast_json() -> None:
     runner = CliRunner()
     # run a tiny benchmark to keep tests fast
-    res = runner.invoke(app, ["benchmark", "--n", "10", "--iterations", "10", "--warmup", "1", "--json"]) 
+    res = runner.invoke(
+        app, ["benchmark", "--n", "10", "--iterations", "10", "--warmup", "1", "--json"]
+    )
     assert res.exit_code == 0
     out = json.loads(res.output)
     assert "iterative" in out or "fast" in out

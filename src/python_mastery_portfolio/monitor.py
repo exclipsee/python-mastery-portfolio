@@ -17,7 +17,7 @@ else:
 
 
 PING_HISTOGRAM: Histogram | None
-if 'Histogram' in globals() and Histogram is not None:
+if "Histogram" in globals() and Histogram is not None:
     PING_HISTOGRAM = Histogram(
         "monitor_ping_duration_seconds",
         "Latency for URL ping requests",

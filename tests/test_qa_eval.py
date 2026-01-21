@@ -26,7 +26,9 @@ def test_evaluate_from_jsonl(tmp_path: Path) -> None:
         encoding="utf8",
     )
 
-    res = evaluate_from_jsonl(docs_jsonl=docs, eval_jsonl=dataset, k=2, chunk_size=80, chunk_overlap=10)
+    res = evaluate_from_jsonl(
+        docs_jsonl=docs, eval_jsonl=dataset, k=2, chunk_size=80, chunk_overlap=10
+    )
     assert res["n"] == 2
     assert 0.0 <= float(res["recall_at_k"]) <= 1.0
     assert 0.0 <= float(res["mrr"]) <= 1.0

@@ -1,5 +1,4 @@
 import streamlit as st
-from typing import List
 
 st.set_page_config(page_title="PM Portfolio Demo", layout="wide")
 
@@ -13,6 +12,7 @@ use_testclient = api_mode == "testclient"
 
 if use_testclient:
     from fastapi.testclient import TestClient
+
     from python_mastery_portfolio.api import app
 
     client = TestClient(app)
@@ -57,20 +57,22 @@ default_docs = [
 docs_text = st.text_area("Documents (one per line)", value="\n".join(default_docs), height=200)
 query = st.text_input("Query", value="How to build an API in Python?")
 
-docs: List[str] = [d.strip() for d in docs_text.splitlines() if d.strip()]
+docs: list[str] = [d.strip() for d in docs_text.splitlines() if d.strip()]
 
 use_transformers = st.checkbox("Prefer sentence-transformers if available", value=True)
 
 if st.button("Run semantic search"):
     try:
         if use_transformers:
-            from sentence_transformers import SentenceTransformer
             import numpy as np
+            from sentence_transformers import SentenceTransformer
 
             model = SentenceTransformer("all-MiniLM-L6-v2")
             doc_emb = model.encode(docs, convert_to_numpy=True)
             q_emb = model.encode([query], convert_to_numpy=True)[0]
-            sims = (doc_emb @ q_emb) / (np.linalg.norm(doc_emb, axis=1) * np.linalg.norm(q_emb) + 1e-12)
+            sims = (doc_emb @ q_emb) / (
+                np.linalg.norm(doc_emb, axis=1) * np.linalg.norm(q_emb) + 1e-12
+            )
             ranked = sims.argsort()[::-1]
             st.write("Using dense sentence-transformers embeddings")
             for i in ranked:
@@ -101,4 +103,6 @@ if st.button("Run semantic search"):
         pass
 
 st.markdown("---")
-st.write("Tips: start the API with `uvicorn python_mastery_portfolio.api:app --reload` to use HTTP mode.")
+st.write(
+    "Tips: start the API with `uvicorn python_mastery_portfolio.api:app --reload` to use HTTP mode."
+)

@@ -44,8 +44,16 @@ def test_doc_qa_rich_ingest_and_ask() -> None:
             "chunk_size": 120,
             "chunk_overlap": 10,
             "documents": [
-                {"id": "doc1", "text": "FastAPI is a web framework for building APIs.", "metadata": {"src": "a"}},
-                {"id": "doc2", "text": "Pandas is used for data analysis.", "metadata": {"src": "b"}},
+                {
+                    "id": "doc1",
+                    "text": "FastAPI is a web framework for building APIs.",
+                    "metadata": {"src": "a"},
+                },
+                {
+                    "id": "doc2",
+                    "text": "Pandas is used for data analysis.",
+                    "metadata": {"src": "b"},
+                },
             ],
         },
     )

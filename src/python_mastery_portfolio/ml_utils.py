@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Iterable, Optional, Tuple
+from collections.abc import Callable, Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd  # type: ignore
@@ -17,8 +17,8 @@ def train_test_split(
     x: Any,
     y: Any,
     test_size: float = 0.2,
-    random_state: Optional[int] = None,
-) -> Tuple[Any, Any, Any, Any]:
+    random_state: int | None = None,
+) -> tuple[Any, Any, Any, Any]:
     """Simple train/test split for arrays or pandas objects.
 
     Returns X_train, X_test, y_train, y_test preserving array types (numpy or pandas).
@@ -46,7 +46,9 @@ def train_test_split(
     return x_train, x_test, y_train, y_test
 
 
-def k_fold_indices(n_samples: int, k: int = 5, random_state: Optional[int] = None) -> Iterable[Tuple[np.ndarray, np.ndarray]]:
+def k_fold_indices(
+    n_samples: int, k: int = 5, random_state: int | None = None
+) -> Iterable[tuple[np.ndarray, np.ndarray]]:
     rng = np.random.default_rng(random_state)
     idx = np.arange(n_samples)
     rng.shuffle(idx)
@@ -62,7 +64,7 @@ def cross_validate_estimator(
     x: Any,
     y: Any,
     k: int = 5,
-    scorer: Optional[Callable[[Any, Any], float]] = None,
+    scorer: Callable[[Any, Any], float] | None = None,
 ) -> list[float]:
     """Cross-validate an estimator created by `estimator_factory`.
 

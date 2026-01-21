@@ -17,9 +17,7 @@ def test_excel_export_endpoint() -> None:
         r.headers.get("content-type")
         == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    assert "attachment; filename=\"export.xlsx\"" in r.headers.get(
-        "content-disposition", ""
-    )
+    assert 'attachment; filename="export.xlsx"' in r.headers.get("content-disposition", "")
     # Load workbook from bytes and verify contents
     wb = load_workbook(BytesIO(r.content))
     ws = wb.active

@@ -82,5 +82,5 @@ def test_cli_monitor_ping(monkeypatch: Any) -> None:
 
     with mock.patch("urllib.request.urlopen", fake_urlopen):
         runner = CliRunner()
-        res = runner.invoke(app, ["monitor-ping", "http://localhost:8000/health"]) 
+        res = runner.invoke(app, ["monitor-ping", "http://localhost:8000/health"])
         assert res.exit_code == 0

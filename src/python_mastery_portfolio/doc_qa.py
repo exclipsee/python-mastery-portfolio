@@ -140,7 +140,7 @@ def _chunk_text(text: str, *, max_chars: int, overlap: int) -> list[tuple[int, i
         window = clean[start:end]
         cut = max(window.rfind("\n\n"), window.rfind(". "), window.rfind("\n"))
         if cut >= max(0, len(window) - 200):
-            end = start + cut + (2 if window[cut:cut + 2] == ". " else 1)
+            end = start + cut + (2 if window[cut : cut + 2] == ". " else 1)
             end = min(end, n)
             window = clean[start:end]
 
@@ -155,6 +155,7 @@ def _chunk_text(text: str, *, max_chars: int, overlap: int) -> list[tuple[int, i
 
 
 # Optional advanced components -------------------------------------------------
+
 
 class SentenceTransformerEmbedder:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
@@ -345,7 +346,10 @@ class QAService:
 
     def search_rich(self, query: str, k: int = 5) -> list[RichHit]:
         hits = self.search(query, k=k)
-        return [RichHit(id=id_, score=score, text=text, meta=self._id_meta.get(id_)) for id_, score, text in hits]
+        return [
+            RichHit(id=id_, score=score, text=text, meta=self._id_meta.get(id_))
+            for id_, score, text in hits
+        ]
 
     def ask(self, question: str, k: int = 3) -> dict[str, object]:
         hits = self.search(question, k=k)
