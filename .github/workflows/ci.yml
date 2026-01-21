@@ -42,6 +42,26 @@ jobs:
         run: |
           pytest -q
 
+      - name: Check coverage threshold
+        if: always()
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET, sys
+          try:
+              root = ET.parse('coverage.xml').getroot()
+          except Exception:
+              print('coverage.xml not found; ensure pytest-cov produced coverage.xml')
+              sys.exit(1)
+          # coverage.xml root has line-rate attribute (fraction)
+          rate = float(root.attrib.get('line-rate', root.attrib.get('line_rate', 0)))
+          pct = rate * 100.0
+          print(f'Coverage: {pct:.2f}%')
+          threshold = 80.0
+          if pct < threshold:
+              print(f'ERROR: coverage {pct:.2f}% is below threshold {threshold}%')
+              sys.exit(1)
+          PY
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
