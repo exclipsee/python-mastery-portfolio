@@ -91,4 +91,15 @@ docker-compose up --build
 
 Then visit http://127.0.0.1:8000/docs for the API docs.
 
+**Streamlit live demo**
+
+There is a small interactive demo that queries the API and visualises semantic
+search results using embeddings. Install demo extras and run:
+
+```bash
+pip install -e .[demo]
+streamlit run examples/streamlit_demo.py
+```
+
+
 
