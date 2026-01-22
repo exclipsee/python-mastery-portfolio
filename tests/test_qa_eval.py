@@ -11,8 +11,7 @@ def test_evaluate_from_jsonl(tmp_path: Path) -> None:
         """
 {"id":"d1","text":"FastAPI is a Python web framework.","metadata":{"path":"a"}}
 {"id":"d2","text":"Pandas supports data analysis.","metadata":{"path":"b"}}
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf8",
     )
 
@@ -21,8 +20,7 @@ def test_evaluate_from_jsonl(tmp_path: Path) -> None:
         """
 {"question":"What is FastAPI?","gold_contains":"FastAPI"}
 {"question":"What library is for data analysis?","gold_contains":"Pandas"}
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf8",
     )
 

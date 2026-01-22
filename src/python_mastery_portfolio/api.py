@@ -292,6 +292,7 @@ def monitor_ping(url: str) -> PingResult:
 @app.get("/metrics")
 def metrics() -> Response:
     # Lazy import to avoid hard dependency if not installed
+    prometheus: Any | None = None
     try:
         import prometheus_client as prometheus  # runtime optional
     except Exception:  # pragma: no cover - import may fail when not installed

@@ -131,18 +131,14 @@ class SentenceTransformerEmbedder:
             ) from exc
 
     def embed(self, text: str) -> np.ndarray:
-        from typing import cast
-
         import numpy as _np
 
-        return cast(_np.ndarray, self._model.encode(text, convert_to_numpy=True))
+        return self._model.encode(text, convert_to_numpy=True)
 
     def embed_batch(self, texts: Iterable[str]) -> np.ndarray:
-        from typing import cast
-
         import numpy as _np
 
-        return cast(_np.ndarray, self._model.encode(list(texts), convert_to_numpy=True))
+        return self._model.encode(list(texts), convert_to_numpy=True)
 
 
 __all__ = ["SimpleEmbedder", "SentenceTransformerEmbedder"]
