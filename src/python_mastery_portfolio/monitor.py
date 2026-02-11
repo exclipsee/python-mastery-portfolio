@@ -5,26 +5,14 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+try:
+    from prometheus_client import Histogram  # type: ignore
+except Exception:  # pragma: no cover - optional
+    Histogram = None  # type: ignore
 
-if TYPE_CHECKING:  # pragma: no cover - only for typing
-    from prometheus_client import Histogram
-else:
-    try:  # pragma: no cover - runtime optional import
-        from prometheus_client import Histogram  # type: ignore
-    except Exception:  # pragma: no cover
-        Histogram = None  # type: ignore
-
-
-PING_HISTOGRAM: Histogram | None
-if "Histogram" in globals() and Histogram is not None:
-    PING_HISTOGRAM = Histogram(
-        "monitor_ping_duration_seconds",
-        "Latency for URL ping requests",
-        ["target"],
-    )
-else:
-    PING_HISTOGRAM = None
+PING_HISTOGRAM: Histogram | None = (
+    Histogram("monitor_ping_duration_seconds", "Latency for URL ping requests", ["target"]) if Histogram is not None else None
+)
 
 
 @dataclass
