@@ -24,24 +24,13 @@ app = typer.Typer(help="Python Mastery Portfolio CLI")
 
 
 @app.callback(invoke_without_command=True)
-def _global_options(
-    ctx: typer.Context,
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
-    config: str | None = typer.Option(None, "--config", "-c", help="Path to TOML config file"),
-    json_logs: bool = typer.Option(False, "--json-logs", help="Emit logs in JSON format"),
-) -> None:
-    """Global CLI options: configure logging and optionally load a config file.
-
-    This callback runs before subcommands so `--verbose` and `--config` apply
-    to all commands.
-    """
+def _global_options(ctx: typer.Context, verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"), config: str | None = typer.Option(None, "--config", "-c", help="Path to TOML config file"), json_logs: bool = typer.Option(False, "--json-logs", help="Emit logs in JSON format"),) -> None:
     configure_logging_from_cli(verbose=verbose, json_output=json_logs)
     if config:
         try:
-            cfg = load_config(config)
-            ctx.obj = {"config": cfg}
-        except Exception as e:
-            raise typer.Exit(code=2) from e
+            ctx.obj = {"config": load_config(config)}
+        except Exception:
+            raise typer.Exit(code=2)
 
 
 @app.command()
@@ -66,22 +55,11 @@ def gcd_cmd(
 
 
 @app.command("benchmark")
-def benchmark_cmd(
-    n: int = typer.Option(20, "--n", "-n", help="Fibonacci index to compute"),
-    iterations: int = typer.Option(1000, "--iterations", "-i", help="Number of iterations"),
-    warmup: int = typer.Option(3, "--warmup", "-w", help="Warmup runs before timing"),
-    method: str = typer.Option("both", "--method", help="Method: iterative|fast|both"),
-    json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
-) -> None:
-    """Micro-benchmark Fibonacci implementations.
-
-    Measures average milliseconds per call for iterative and/or fast implementations.
-    """
+def benchmark_cmd(n: int = typer.Option(20, "--n", "-n"), iterations: int = typer.Option(1000, "--iterations", "-i"), warmup: int = typer.Option(3, "--warmup", "-w"), method: str = typer.Option("both", "--method"), json_out: bool = typer.Option(False, "--json"),) -> None:
     import time
-    from collections.abc import Callable
     from statistics import mean
 
-    def time_func(func: Callable[[int], int]) -> dict[str, float]:
+    def time_func(func):
         for _ in range(warmup):
             func(n)
         timings = []
@@ -96,11 +74,9 @@ def benchmark_cmd(
         out["iterative"] = time_func(fibonacci)
     if method in ("fast", "both"):
         out["fast"] = time_func(fibonacci_fast)
-
     if json_out:
         typer.echo(json.dumps(out, sort_keys=True))
         return
-
     for k, v in out.items():
         typer.echo(f"{k}: iterations={v['iterations']} total_ms={v['total_ms']:.3f}")
         typer.echo(f"{k}: avg_ms={v['avg_ms']:.6f}")

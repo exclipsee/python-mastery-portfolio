@@ -35,23 +35,13 @@ logger = logging.getLogger("api")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan manager."""
-    # Startup
+    """Manage startup/shutdown tasks."""
     asyncio.create_task(metrics_broadcaster(_ws_manager, interval=2.0))
     logger.info("metrics_broadcaster_started")
     yield
-    # Shutdown (cleanup if needed)
 
 
-app = FastAPI(
-    title="Python Mastery API",
-    description=(
-        "Typed FastAPI service with examples: Fibonacci, VIN validation. "
-        "Includes timing middleware, request-id propagation, JSON logging, "
-        "and real-time monitoring."
-    ),
-    lifespan=lifespan,
-)
+app = FastAPI(title="Python Mastery API", description="Examples: Fibonacci, VIN, ML, RAG.", lifespan=lifespan)
 
 _qa = QAService()
 
@@ -65,29 +55,26 @@ _ml_model: TrainedModel | None = None
 def _init_default_ml_model() -> None:
     global _ml_model
     try:
-        # Simple dataset: y = x1 + x2
         x = [[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]]
         y = [3.0, 5.0, 7.0, 9.0]
         _ml_model = train_linear_regression(x, y)
-    except Exception as e:  # pragma: no cover
-        logger.exception("failed_default_model", extra={"error": str(e)})
+    except Exception:  # pragma: no cover
+        logger.exception("failed_default_model")
         _ml_model = None
 
 
 _init_default_ml_model()
 
 
-# Simple per-IP rate limiter for demo endpoints (e.g., VIN)
 _rate_buckets: dict[str, deque[float]] = defaultdict(deque)
-_RATE_LIMIT_MAX = 120  # requests
-_RATE_LIMIT_WINDOW = 60.0  # seconds
+_RATE_LIMIT_MAX = 120
+_RATE_LIMIT_WINDOW = 60.0
 
 
 def _check_rate_limit(req: Request, max_req: int = _RATE_LIMIT_MAX) -> None:
     now = monotonic()
     ip = (req.client.host if req.client else "unknown") or "unknown"
     dq = _rate_buckets[ip]
-    # drop old timestamps
     while dq and now - dq[0] > _RATE_LIMIT_WINDOW:
         dq.popleft()
     if len(dq) >= max_req:
@@ -256,26 +243,14 @@ def vin_generate_api(req: VinGenerateRequest, request: Request) -> VinGenerateRe
 
 
 @app.middleware("http")
-async def add_timing_header(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
+async def add_timing_header(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     start = time.perf_counter()
-    # Propagate or assign a request ID
     req_id = request.headers.get("X-Request-ID") or uuid4().hex
     response = await call_next(request)
     elapsed_ms = (time.perf_counter() - start) * 1000
     response.headers["X-Process-Time"] = f"{elapsed_ms:.2f}ms"
     response.headers["X-Request-ID"] = req_id
-    logger.info(
-        "request",
-        extra={
-            "path": request.url.path,
-            "method": request.method,
-            "status_code": response.status_code,
-            "ms": round(elapsed_ms, 2),
-            "request_id": req_id,
-        },
-    )
+    logger.info("request", extra={"path": request.url.path, "method": request.method, "status_code": response.status_code, "ms": round(elapsed_ms, 2), "request_id": req_id})
     return response
 
 
