@@ -33,35 +33,28 @@ def load_jsonl(path: str | Path) -> list[dict[str, Any]]:
 def load_documents_jsonl(path: str | Path) -> list[QADocument]:
     rows = load_jsonl(path)
     docs: list[QADocument] = []
-    for row in rows:
-        doc_id = str(row.get("id", ""))
-        text = str(row.get("text", ""))
-        metadata_raw = row.get("metadata", {})
-        if not isinstance(metadata_raw, dict):
-            metadata_raw = {}
-        metadata: dict[str, object] = {str(k): v for k, v in metadata_raw.items()}
+    for r in rows:
+        doc_id = str(r.get("id", ""))
+        text = str(r.get("text", ""))
+        meta_raw = r.get("metadata", {})
+        if not isinstance(meta_raw, dict):
+            meta_raw = {}
         if not doc_id or not text:
             continue
-        docs.append(QADocument(id=doc_id, text=text, metadata=metadata))
+        docs.append(QADocument(id=doc_id, text=text, metadata={str(k): v for k, v in meta_raw.items()}))
     return docs
 
 
 def load_eval_examples_jsonl(path: str | Path) -> list[EvalExample]:
     rows = load_jsonl(path)
     out: list[EvalExample] = []
-    for row in rows:
-        q = row.get("question")
+    for r in rows:
+        q = r.get("question")
         if not isinstance(q, str) or not q.strip():
             continue
-        gold_contains = row.get("gold_contains")
-        gold_doc_id = row.get("gold_doc_id")
-        out.append(
-            EvalExample(
-                question=q,
-                gold_contains=str(gold_contains) if isinstance(gold_contains, str) else None,
-                gold_doc_id=str(gold_doc_id) if isinstance(gold_doc_id, str) else None,
-            )
-        )
+        gc = r.get("gold_contains")
+        gid = r.get("gold_doc_id")
+        out.append(EvalExample(question=q, gold_contains=str(gc) if isinstance(gc, str) else None, gold_doc_id=str(gid) if isinstance(gid, str) else None))
     return out
 
 
@@ -75,7 +68,6 @@ def _match_hit(
         return hit_doc_id == example.gold_doc_id
     if example.gold_contains is not None:
         return example.gold_contains.lower() in hit_text.lower()
-    # If neither is provided, treat as non-match
     return False
 
 

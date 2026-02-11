@@ -18,20 +18,17 @@ class TrainedModel:
 
 
 def train_linear_regression(x: Sequence[Sequence[float]], y: Sequence[float]) -> TrainedModel:
-    x_arr = np.asarray(x, dtype=float)
-    y_arr = np.asarray(y, dtype=float)
+    xa = np.asarray(x, dtype=float)
+    ya = np.asarray(y, dtype=float)
     scaler = StandardScaler()
-    x_scaled = scaler.fit_transform(x_arr)
     model = LinearRegression()
-    model.fit(x_scaled, y_arr)
+    model.fit(scaler.fit_transform(xa), ya)
     return TrainedModel(scaler=scaler, model=model)
 
 
 def predict(trained: TrainedModel, rows: Iterable[Sequence[float]]) -> list[float]:
-    x_mat = np.asarray(list(rows), dtype=float)
-    x_scaled = trained.scaler.transform(x_mat)
-    preds = trained.model.predict(x_scaled)
-    # ensure precise typing for mypy
+    xm = np.asarray(list(rows), dtype=float)
+    preds = trained.model.predict(trained.scaler.transform(xm))
     return [float(v) for v in preds.tolist()]
 
 
@@ -46,5 +43,4 @@ def load_model(path: str | Path) -> TrainedModel:
 
 
 def add_bias_feature(rows: Iterable[Sequence[float]]) -> list[list[float]]:
-    """Simple feature engineering: prepend bias term 1.0 to each row."""
     return [[1.0, *[float(v) for v in row]] for row in rows]
