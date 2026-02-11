@@ -10,11 +10,6 @@ R = TypeVar("R")
 
 
 def timeit(func: Callable[P, R]) -> Callable[P, R]:
-    """Decorator that prints the runtime of the wrapped function.
-
-    Intended for demonstration; in production you might prefer a structured logger.
-    """
-
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         start = time.perf_counter()
         try:

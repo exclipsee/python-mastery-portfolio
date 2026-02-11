@@ -42,36 +42,23 @@ _VIN_ALLOWED_RE = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")  # Exclude I, O, Q
 
 
 def normalize_vin(vin: str) -> str:
-    """Return VIN uppercased and stripped of spaces."""
     return vin.replace(" ", "").upper()
 
 
 def compute_check_digit(vin: str) -> str:
-    """Compute the ISO 3779 check digit (position 9).
-
-    Returns "X" if result is 10, else a single digit string.
-    Assumes vin has length 17 and contains allowed characters.
-    """
     total = 0
     for i, ch in enumerate(vin):
         value = TRANSLITERATION[ch]
         total += value * WEIGHTS[i]
-    remainder = total % 11
-    return "X" if remainder == 10 else str(remainder)
+    r = total % 11
+    return "X" if r == 10 else str(r)
 
 
 def is_valid_vin(vin: str) -> bool:
-    """Validate a VIN by length, charset, and check digit.
-
-    The 9th character is the check digit which must match ISO 3779.
-    """
     v = normalize_vin(vin)
-    if len(v) != 17:
+    if len(v) != 17 or not _VIN_ALLOWED_RE.match(v):
         return False
-    if not _VIN_ALLOWED_RE.match(v):
-        return False
-    expected = compute_check_digit(v)
-    return v[8] == expected
+    return v[8] == compute_check_digit(v)
 
 
 # --- VIN decoding helpers ---
@@ -102,30 +89,17 @@ _YEAR_LETTERS: Final[list[str]] = [
 
 
 def get_model_year(code: str) -> int | None:
-    """Return model year for a 10th-position VIN code.
-
-    Heuristic: digits 1..9 map to 2001..2009; letters map to the modern cycle 2010..2030.
-    """
     if not code:
         return None
     c = code.upper()
-    if c.isdigit() and c in {"1", "2", "3", "4", "5", "6", "7", "8", "9"}:
+    if c.isdigit() and c in {"1","2","3","4","5","6","7","8","9"}:
         return 2000 + int(c)
     if c in _YEAR_LETTERS:
-        idx = _YEAR_LETTERS.index(c)
-        # 2010 corresponds to 'A' (idx 0)
-        return 2010 + idx
+        return 2010 + _YEAR_LETTERS.index(c)
     return None
 
 
 def get_year_code(year: int) -> str | None:
-    """Return VIN year code for a given year (1980..2039).
-
-    - 1980..2000 use letters starting at 'A'..'Y' (skipping I,O,Q,U,Z)
-    - 2001..2009 use digits '1'..'9'
-    - 2010..2030 reuse letters 'A'..'Y' (same sequence)
-    - 2031..2039 use digits '1'..'9' again (future cycle)
-    """
     if 2001 <= year <= 2009:
         return str(year - 2000)
     if 2010 <= year <= 2030:
@@ -187,10 +161,6 @@ class VinDecoded:
 
 
 def decode_vin(vin: str) -> VinDecoded:
-    """Decode structural fields from a VIN and compute model year and region.
-
-    This is a best-effort decoder with limited WMI-brand hints.
-    """
     v = normalize_vin(vin)
     format_ok = len(v) == 17 and bool(_VIN_ALLOWED_RE.match(v))
     check_digit_valid: bool | None = None
@@ -205,25 +175,16 @@ def decode_vin(vin: str) -> VinDecoded:
     model_year_code = v[9] if len(v) >= 10 else None
     model_year = get_model_year(model_year_code) if model_year_code else None
 
-    # Provide candidates from standard cycles if recognizable
     def _candidates(code: str | None) -> list[int] | None:
         if not code:
             return None
         c = code.upper()
-        cand: list[int] = []
-        # Digits 1-9 => 2001..2009 (and possibly 2031..2039)
-        if c in {"1", "2", "3", "4", "5", "6", "7", "8", "9"}:
+        if c in {"1","2","3","4","5","6","7","8","9"}:
             base = 2000 + int(c)
-            cand = [base]
-            if base <= 2009:
-                cand.append(base + 30)
-            return cand
-        # Letters from our list map to 1980..2000 and 2010..2030
+            return [base] + ([base + 30] if base <= 2009 else [])
         if c in _YEAR_LETTERS:
             idx = _YEAR_LETTERS.index(c)
-            old = 1980 + idx
-            new = 2010 + idx
-            return [old, new]
+            return [1980 + idx, 2010 + idx]
         return None
 
     my_cand = _candidates(model_year_code)
@@ -233,31 +194,11 @@ def decode_vin(vin: str) -> VinDecoded:
     region = _REGION_MAP.get(v[0]) if v else None
     brand = _WMI_BRANDS.get(wmi) if wmi else None
     notes: list[str] | None = None
-    # Brand-specific note for Fiat EU VINs where year code may not be encoded
     if brand and brand.startswith("Fiat") and (model_year is None):
         notes = [
-            (
-                "Model year not encoded in position 10 for some EU-market Fiat VINs; "
-                "manual lookup or registration/production data is required."
-            ),
+            "Model year not encoded in position 10 for some EU-market Fiat VINs; manual lookup required.",
         ]
-    return VinDecoded(
-        vin=v,
-        valid=format_ok,
-        wmi=wmi,
-        vds=vds,
-        vis=vis,
-        check_digit=check_digit,
-        check_digit_valid=check_digit_valid,
-        model_year_code=model_year_code,
-        model_year=model_year,
-        model_year_candidates=my_cand,
-        plant_code=plant_code,
-        serial_number=serial_number,
-        region=region,
-        brand=brand,
-        notes=notes,
-    )
+    return VinDecoded(vin=v, valid=format_ok, wmi=wmi, vds=vds, vis=vis, check_digit=check_digit, check_digit_valid=check_digit_valid, model_year_code=model_year_code, model_year=model_year, model_year_candidates=my_cand, plant_code=plant_code, serial_number=serial_number, region=region, brand=brand, notes=notes)
 
 
 def _ensure_allowed_chars(s: str, length: int, pad: str = "0") -> str:
