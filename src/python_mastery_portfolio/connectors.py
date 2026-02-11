@@ -34,13 +34,7 @@ class Connector(ABC):
 
 
 class FileSystemConnector(Connector):
-    """Read text files (markdown/plain) from a directory and yield documents.
-
-    Args:
-        root: directory to scan
-        extensions: list of file extensions to include (e.g. ['.md', '.txt'])
-        recursive: whether to recurse into subdirectories
-    """
+    """Read text files from a directory and yield Document instances."""
 
     def __init__(
         self,
@@ -75,15 +69,7 @@ class FileSystemConnector(Connector):
 
 
 class SQLiteConnector(Connector):
-    """Simple connector that reads text rows from a SQLite table.
-
-    Args:
-        db_path: path to sqlite file
-        table: table name containing text
-        id_col: column name for id
-        text_col: column name containing text
-        metadata_cols: optional list of columns to include as metadata
-    """
+    """Read rows from a SQLite table and yield Document instances."""
 
     def __init__(
         self,

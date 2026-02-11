@@ -159,15 +159,15 @@ def _chunk_text(text: str, *, max_chars: int, overlap: int) -> list[tuple[int, i
 
 class SentenceTransformerEmbedder:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
-        from sentence_transformers import SentenceTransformer
+        try:
+            from sentence_transformers import SentenceTransformer
 
-        self.model = SentenceTransformer(model_name)
+            self.model = SentenceTransformer(model_name)
+        except Exception as exc:  # pragma: no cover - optional dependency
+            raise RuntimeError("sentence-transformers not available") from exc
+
         d = self.model.get_sentence_embedding_dimension()
-        if isinstance(d, int):
-            self._dim = d
-        else:
-            # Fallback if API returns an unexpected type
-            self._dim = int(d or 0)
+        self._dim = int(d or 0)
 
     def dim(self) -> int:
         return self._dim
@@ -178,84 +178,59 @@ class SentenceTransformerEmbedder:
 
 
 class FaissIndex:
+    """Thin FAISS wrapper: uses FAISS if installed, otherwise raises on init."""
+
     def __init__(self, embedder: Embedder) -> None:
+        try:
+            import faiss  # type: ignore
+            import numpy as np
+        except Exception as exc:  # pragma: no cover - optional dependency
+            raise RuntimeError("faiss and numpy are required for FaissIndex") from exc
+
         self.embedder = embedder
         self._texts: list[str] = []
         self._ids: list[int] = []
         self._next_id = 1
         self._dim = embedder.dim()
-        # Lazily type-annotate FAISS index as Any to satisfy static checkers
-        import faiss
-
-        self._faiss: Any = faiss.IndexFlatIP(self._dim)
-
-    def _rebuild_index(self) -> None:
-        """Rebuild FAISS index when embedding dimension changes or after reset."""
-        import faiss
-        import numpy as np
-
-        self._dim = self.embedder.dim()
         self._faiss = faiss.IndexFlatIP(self._dim)
-        if not self._texts:
-            return
-        vecs = self.embedder.embed(self._texts)
-        arr = np.asarray(vecs, dtype="float32")
-        norms = np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12
-        arr = arr / norms
-        # pyright: ignore[reportGeneralTypeIssues] for FAISS type shims
-        self._faiss.add(arr)  # pyright: ignore[reportGeneralTypeIssues]
 
     def add(self, texts: list[str]) -> list[int]:
         import numpy as np
 
-        # Generate ids and update local stores first
         ids: list[int] = []
-        for t in texts:
-            self._texts.append(t)
+        self._texts.extend(texts)
+        for _ in texts:
             self._ids.append(self._next_id)
             ids.append(self._next_id)
             self._next_id += 1
 
-        # Compute embeddings for new texts
         vecs = self.embedder.embed(texts)
-        new_dim = self.embedder.dim()
-        if new_dim != self._dim:
-            # Dimension changed (e.g., vocabulary grew). Rebuild entire index.
-            self._rebuild_index()
-            return ids
-
-        # normalize for cosine similarity on inner product index
         arr = np.asarray(vecs, dtype="float32")
         norms = np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12
         arr = arr / norms
-        self._faiss.add(arr)  # pyright: ignore[reportGeneralTypeIssues]
+        self._faiss.add(arr)
         return ids
 
     def reset(self) -> None:
         self._texts.clear()
         self._ids.clear()
         self._next_id = 1
-        # Recreate FAISS index with current embedder dimension
-        self._rebuild_index()
+        self._faiss = type(self._faiss)(self._dim)
 
     def search(self, query: str, k: int) -> list[tuple[int, float, str]]:
         import numpy as np
 
         if not self._texts or k <= 0:
             return []
-
         v = self.embedder.embed([query])[0]
         arr = np.asarray([v], dtype="float32")
         arr = arr / (np.linalg.norm(arr, axis=1, keepdims=True) + 1e-12)
-        scores, idxs = self._faiss.search(arr, k)  # pyright: ignore[reportGeneralTypeIssues]
+        scores, idxs = self._faiss.search(arr, k)
         out: list[tuple[int, float, str]] = []
-        # FAISS returns positions in the order vectors were added
         for rank, pos in enumerate(idxs[0]):
             if pos == -1:
                 continue
-            id_ = self._ids[pos]
-            score = float(scores[0][rank])
-            out.append((id_, score, self._texts[pos]))
+            out.append((self._ids[pos], float(scores[0][rank]), self._texts[pos]))
         return out
 
 
