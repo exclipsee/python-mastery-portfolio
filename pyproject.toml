@@ -1,12 +1,12 @@
 [project]
 name = "python-mastery-portfolio"
 version = "0.1.0"
-description = "A polished portfolio showcasing Python mastery: clean code, tests, typing, CI, and examples."
+description = "Portfolio of small Python projects: CLI, FastAPI, ML utilities, and QA/embeddings."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Volodymyr Minutin" }]
-keywords = ["python", "portfolio", "algorithms", "cli", "typing"]
+authors = [{ name = "Volodymyr Minutin", email = "exclipsee@users.noreply.github.com" }]
+keywords = ["python", "portfolio", "cli", "api", "ml", "nlp", "embeddings", "qa", "vin", "testing"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
