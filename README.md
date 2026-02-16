@@ -22,3 +22,18 @@ Production-grade Python: decorators, caching, DI, exceptions, typing.
 | di_container.py | Dependency injection |
 | typing_utils.py | Result, Container, Pipeline |
 
+## Running locally
+
+Start the API locally with Docker Compose:
+
+```sh
+docker-compose up --build
+```
+
+The service listens on port 8000 by default. A health probe is available at:
+
+```
+GET http://localhost:8000/health
+```
+
+The `/health` endpoint returns JSON with `status`, `uptime` (seconds), and `version`.
