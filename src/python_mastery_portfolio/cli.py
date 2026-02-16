@@ -36,9 +36,14 @@ def _global_options(ctx: typer.Context, verbose: bool = typer.Option(False, "--v
 @app.command()
 def fib(
     n: int = typer.Argument(..., min=0, help="Return the n-th Fibonacci number (0-indexed)"),
+    json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
 ) -> None:
     """Compute the n-th Fibonacci number."""
-    typer.echo(fibonacci(n))
+    val = fibonacci(n)
+    if json_out:
+        typer.echo(json.dumps({"n": n, "value": val}))
+        return
+    typer.echo(val)
 
 
 @app.command("gcd")
