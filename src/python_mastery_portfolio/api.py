@@ -404,6 +404,23 @@ def excel_export_api(req: ExcelExportRequest) -> Response:
     Uses the existing utility `write_rows_to_excel`. A temporary file is created
     and returned as an attachment.
     """
+    from fastapi import HTTPException
+
+    # Basic validation: rows must be a non-empty list of lists of strings
+    if not isinstance(req.rows, list) or len(req.rows) == 0:
+        raise HTTPException(status_code=400, detail="rows must be a non-empty list")
+    # Validate header
+    header = req.rows[0]
+    if not isinstance(header, list) or not all(isinstance(c, (str, bool, int, float)) for c in header):
+        raise HTTPException(status_code=400, detail="header row must be a list of strings")
+    # Validate other rows
+    for i, row in enumerate(req.rows[1:], start=1):
+        if not isinstance(row, list):
+            raise HTTPException(status_code=400, detail=f"row {i} is not a list")
+        for j, cell in enumerate(row):
+            if not isinstance(cell, (str, bool, int, float)):
+                raise HTTPException(status_code=400, detail=f"cell at row {i} col {j} is not a string")
+
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / "export.xlsx"
         write_rows_to_excel(req.rows, path)
