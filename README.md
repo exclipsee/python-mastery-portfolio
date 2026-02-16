@@ -37,3 +37,14 @@ GET http://localhost:8000/health
 ```
 
 The `/health` endpoint returns JSON with `status`, `uptime` (seconds), and `version`.
+
+
+## Optional dependencies
+
+Some features require optional extras. For embeddings/RAG functionality, install the `rag` extras:
+
+```sh
+pip install .[rag]
+```
+
+If `sentence-transformers` or `scikit-learn` are not installed, the library falls back to a deterministic, lightweight `SimpleEmbedder` implementation.
