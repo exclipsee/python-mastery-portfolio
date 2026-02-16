@@ -29,8 +29,13 @@ from .monitor import PING_HISTOGRAM, PingResult, ping_url
 from .system_metrics import metrics_broadcaster
 from .websocket_manager import ConnectionManager
 
+from . import __version__ as __version__
+
 setup_json_logging()
 logger = logging.getLogger("api")
+
+# Record application start time for uptime reporting
+APP_START = monotonic()
 
 
 @asynccontextmanager
@@ -255,8 +260,10 @@ async def add_timing_header(request: Request, call_next: Callable[[Request], Awa
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict[str, str | float]:
+    uptime = max(0.0, monotonic() - APP_START)
+    # Return status, uptime in seconds, and package version
+    return {"status": "ok", "uptime": round(uptime, 3), "version": __version__}
 
 
 @app.get("/monitor/ping")
