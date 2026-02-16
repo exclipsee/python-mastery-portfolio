@@ -48,3 +48,27 @@ pip install .[rag]
 ```
 
 If `sentence-transformers` or `scikit-learn` are not installed, the library falls back to a deterministic, lightweight `SimpleEmbedder` implementation.
+
+## Developer setup
+
+To run tests and development checks locally, install the `dev` extras and enable pre-commit hooks:
+
+```sh
+python -m pip install -e .[dev]
+python -m pip install pre-commit
+pre-commit install
+```
+
+Run the test suite with:
+
+```sh
+python -m pytest
+```
+
+Run formatting and lint checks locally:
+
+```sh
+python -m black .
+python -m isort .
+python -m ruff check .
+```
