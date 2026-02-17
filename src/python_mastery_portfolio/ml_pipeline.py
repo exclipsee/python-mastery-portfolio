@@ -13,22 +13,30 @@ from sklearn.preprocessing import StandardScaler
 
 @dataclass
 class TrainedModel:
-    scaler: StandardScaler
+    scaler: StandardScaler | None
     model: LinearRegression
 
 
-def train_linear_regression(x: Sequence[Sequence[float]], y: Sequence[float]) -> TrainedModel:
+def train_linear_regression(x: Sequence[Sequence[float]], y: Sequence[float], normalize: bool = True) -> TrainedModel:
     xa = np.asarray(x, dtype=float)
     ya = np.asarray(y, dtype=float)
-    scaler = StandardScaler()
-    model = LinearRegression()
-    model.fit(scaler.fit_transform(xa), ya)
+    scaler: StandardScaler | None = None
+    if normalize:
+        scaler = StandardScaler()
+        model = LinearRegression()
+        model.fit(scaler.fit_transform(xa), ya)
+    else:
+        model = LinearRegression()
+        model.fit(xa, ya)
     return TrainedModel(scaler=scaler, model=model)
 
 
 def predict(trained: TrainedModel, rows: Iterable[Sequence[float]]) -> list[float]:
     xm = np.asarray(list(rows), dtype=float)
-    preds = trained.model.predict(trained.scaler.transform(xm))
+    if trained.scaler is not None:
+        preds = trained.model.predict(trained.scaler.transform(xm))
+    else:
+        preds = trained.model.predict(xm)
     return [float(v) for v in preds.tolist()]
 
 

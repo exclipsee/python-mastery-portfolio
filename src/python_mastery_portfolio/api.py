@@ -149,7 +149,7 @@ class VinResponse(BaseModel):
     valid: bool
     model_config = {
         "json_schema_extra": {
-            "examples": [
+            examples: [
                 {"vin": "1HGCM82633A004352", "valid": True},
                 {"vin": "INVALIDVIN1234567", "valid": False},
             ]
@@ -247,10 +247,18 @@ def vin_generate_api(req: VinGenerateRequest, request: Request) -> VinGenerateRe
     return VinGenerateResponse(vin=vin)
 
 
+REQUEST_COUNTERS: dict[str, int] = defaultdict(int)
+
+
 @app.middleware("http")
 async def add_timing_header(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     start = time.perf_counter()
     req_id = request.headers.get("X-Request-ID") or uuid4().hex
+    # Increment simple in-memory counter for the path
+    try:
+        REQUEST_COUNTERS[request.url.path] += 1
+    except Exception:
+        pass
     response = await call_next(request)
     elapsed_ms = (time.perf_counter() - start) * 1000
     response.headers["X-Process-Time"] = f"{elapsed_ms:.2f}ms"
@@ -293,6 +301,13 @@ def metrics() -> Response:
         return Response(content=b"", media_type=content_type_latest)
     data = prometheus.generate_latest()
     return Response(content=data, media_type=content_type_latest)
+
+
+@app.get("/stats")
+def stats() -> dict[str, object]:
+    """Return simple in-memory statistics (request counts and uptime)."""
+    uptime = max(0.0, monotonic() - APP_START)
+    return {"status": "ok", "uptime": round(uptime, 3), "version": __version__, "counters": dict(REQUEST_COUNTERS)}
 
 
 # --- Document Q&A ---
@@ -469,6 +484,7 @@ class MLTrainRequest(BaseModel):
         default=True,
         description="If true, update the service's default model",
     )
+    normalize: bool = Field(default=True, description="If true, apply StandardScaler normalization")
 
 
 class MLTrainResponse(BaseModel):
@@ -488,7 +504,7 @@ def ml_train_api(req: MLTrainRequest) -> MLTrainResponse:
         from fastapi import HTTPException
 
         raise HTTPException(status_code=400, detail="x and y lengths differ")
-    model = train_linear_regression(req.x, req.y)
+    model = train_linear_regression(req.x, req.y, normalize=req.normalize)
     if req.set_default:
         _ml_model = model
     return MLTrainResponse(status="ok", n_rows=len(req.x))
