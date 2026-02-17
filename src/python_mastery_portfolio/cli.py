@@ -37,8 +37,19 @@ def _global_options(ctx: typer.Context, verbose: bool = typer.Option(False, "--v
 def fib(
     n: int = typer.Argument(..., min=0, help="Return the n-th Fibonacci number (0-indexed)"),
     json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
+    ascii_out: bool = typer.Option(False, "--ascii", help="Emit a small ASCII visualization of the sequence up to n"),
 ) -> None:
-    """Compute the n-th Fibonacci number."""
+    """Compute the n-th Fibonacci number or show an ASCII visualization of the sequence up to n."""
+    if ascii_out:
+        # Show sequence from 0..n as small bars scaled to width 40
+        vals = [fibonacci(i) for i in range(n + 1)]
+        max_val = max(vals) if vals else 1
+        max_val = max(1, max_val)
+        for i, v in enumerate(vals):
+            width = min(40, int((v / max_val) * 40)) if max_val > 0 else 0
+            bar = "█" * width if width > 0 else "."
+            typer.echo(f"{i:>2}: {bar} {v}")
+        return
     val = fibonacci(n)
     if json_out:
         typer.echo(json.dumps({"n": n, "value": val}))
@@ -195,11 +206,13 @@ def ml_train(
     add_bias: bool = typer.Option(
         False, "--add-bias", help="Prepend a bias feature (1.0) to each row"
     ),
+    normalize: bool = typer.Option(True, "--normalize/--no-normalize", help="Apply feature normalization (StandardScaler)"),
+    batch_size: int | None = typer.Option(None, "--batch-size", help="Optional batch size (not used, reserved)"),
 ) -> None:
     rows = [[float(v) for v in r.split(",")] for r in x]
     if add_bias:
         rows = add_bias_feature(rows)
-    model = train_linear_regression(rows, y)
+    model = train_linear_regression(rows, y, normalize=normalize)
     if save:
         path = save_model(model, save)
         typer.echo(str(path))
