@@ -1,9 +1,27 @@
+"""Utility algorithms used by examples and tests.
+
+Small, well-tested algorithms: Fibonacci (iterative and fast doubling),
+binary search and gcd helpers. These functions are intentionally
+simple and intended for educational/demo use.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
 
 
 def fibonacci(n: int) -> int:
+    """Return the n-th Fibonacci number (0-indexed).
+
+    Args:
+        n: Non-negative index of the Fibonacci sequence.
+
+    Returns:
+        The n-th Fibonacci integer.
+
+    Raises:
+        ValueError: if ``n`` is negative.
+    """
     if n < 0:
         raise ValueError("n must be >= 0")
     a, b = 0, 1
@@ -13,6 +31,15 @@ def fibonacci(n: int) -> int:
 
 
 def binary_search(seq: Sequence[int], value: int) -> int:
+    """Perform binary search on a sorted sequence.
+
+    Args:
+        seq: Sequence of integers (must be sorted in ascending order).
+        value: Value to search for.
+
+    Returns:
+        Index of ``value`` in ``seq`` if found, otherwise ``-1``.
+    """
     lo, hi = 0, len(seq) - 1
     while lo <= hi:
         mid = (lo + hi) // 2
@@ -26,6 +53,18 @@ def binary_search(seq: Sequence[int], value: int) -> int:
 
 
 def gcd(a: int, b: int) -> int:
+    """Compute the greatest common divisor using Euclid's algorithm.
+
+    Args:
+        a: First integer.
+        b: Second integer.
+
+    Returns:
+        The non-negative greatest common divisor of ``a`` and ``b``.
+
+    Raises:
+        ValueError: if both ``a`` and ``b`` are zero (gcd undefined).
+    """
     a, b = int(a), int(b)
     a, b = abs(a), abs(b)
     if a == 0 and b == 0:
@@ -36,6 +75,19 @@ def gcd(a: int, b: int) -> int:
 
 
 def fibonacci_fast(n: int) -> int:
+    """Return the n-th Fibonacci number using the fast-doubling method.
+
+    This implementation runs in O(log n) time and avoids linear iteration.
+
+    Args:
+        n: Non-negative index of the Fibonacci sequence.
+
+    Returns:
+        The n-th Fibonacci integer.
+
+    Raises:
+        ValueError: if ``n`` is negative.
+    """
     if n < 0:
         raise ValueError("n must be >= 0")
 
