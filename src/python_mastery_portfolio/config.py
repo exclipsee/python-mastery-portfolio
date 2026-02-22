@@ -1,3 +1,10 @@
+"""Configuration file loader with TOML/JSON fallback.
+
+`load_config` supports TOML files (using the stdlib tomllib on Py3.11+ or
+`tomli` on older Pythons) and JSON files. File suffix matching is
+performed case-insensitively.
+"""
+
 from __future__ import annotations
 
 import json
@@ -27,6 +34,16 @@ def _parse_toml_bytes(data: bytes) -> dict[str, Any]:
 
 
 def load_config(path: str | Path) -> dict[str, Any]:
+    """Load configuration from a TOML or JSON file.
+
+    Args:
+        path: Path to the configuration file. TOML files should use the
+              ``.toml`` suffix (case-insensitive); otherwise the file is
+              parsed as JSON.
+
+    Returns:
+        A dictionary representing the parsed configuration.
+    """
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"Config file not found: {p}")
