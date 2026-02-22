@@ -1,3 +1,10 @@
+"""Connectors for importing/exporting document data.
+
+Provides simple filesystem and SQLite connectors that yield Document dataclasses
+suitable for indexing or export to JSONL. Output values are coerced to strings
+where appropriate to make them JSON-serializable.
+"""
+
 from __future__ import annotations
 
 import json
@@ -95,8 +102,9 @@ class SQLiteConnector(Connector):
         try:
             for row in cur.execute(sql):
                 doc_id = str(row[self.id_col])
-                text = row[self.text_col]
-                meta: dict[str, object] = {c: row[c] for c in self.metadata_cols}
+                # Coerce text and metadata values to strings to ensure JSON-serializability
+                text = str(row[self.text_col]) if row[self.text_col] is not None else ""
+                meta: dict[str, object] = {c: (str(row[c]) if row[c] is not None else None) for c in self.metadata_cols}
                 yield Document(id=doc_id, text=text, metadata=meta)
         finally:
             conn.close()
