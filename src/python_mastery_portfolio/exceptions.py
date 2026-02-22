@@ -1,4 +1,8 @@
-"""Custom exception classes."""
+"""Custom exception classes used across the package.
+
+These exceptions carry an optional ``context`` mapping that can be serialized
+for debugging and API responses via the ``to_dict`` helper.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +10,13 @@ from typing import Any
 
 
 class PortfolioError(Exception):
-    """Base exception with context."""
+    """Base exception with optional structured context.
+
+    Attributes:
+        message: Human-readable message.
+        error_code: Short machine-friendly error code.
+        context: Optional additional contextual data.
+    """
 
     def __init__(
         self, message: str, error_code: str | None = None, context: dict[str, Any] | None = None
@@ -17,6 +27,7 @@ class PortfolioError(Exception):
         self.context = context or {}
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a serializable representation of the exception."""
         return {
             "error_code": self.error_code,
             "message": self.message,
@@ -27,7 +38,10 @@ class PortfolioError(Exception):
 
 
 class ValidationError(PortfolioError):
-    """Validation failure."""
+    """Raised when an input validation failure occurs.
+
+    The optional ``field`` and ``value`` are included in the ``context``.
+    """
 
     def __init__(self, message: str, field: str | None = None, value: Any = None) -> None:
         context = {}
@@ -39,7 +53,10 @@ class ValidationError(PortfolioError):
 
 
 class RateLimitError(PortfolioError):
-    """Rate limit exceeded."""
+    """Raised when a rate limit is exceeded.
+
+    ``retry_after`` and ``limit`` (when provided) are included in the context.
+    """
 
     def __init__(
         self, message: str, retry_after: float | None = None, limit: int | None = None
@@ -53,7 +70,7 @@ class RateLimitError(PortfolioError):
 
 
 class ConfigurationError(PortfolioError):
-    """Configuration is invalid."""
+    """Raised when configuration is invalid or missing."""
 
     def __init__(self, message: str, config_key: str | None = None) -> None:
         context = {}
@@ -63,7 +80,7 @@ class ConfigurationError(PortfolioError):
 
 
 class DataProcessingError(PortfolioError):
-    """Data processing failed."""
+    """Raised when data processing steps fail (e.g. parsing or row errors)."""
 
     def __init__(self, message: str, step: str | None = None, row_index: int | None = None) -> None:
         context = {}
@@ -75,7 +92,10 @@ class DataProcessingError(PortfolioError):
 
 
 class APIError(PortfolioError):
-    """API error."""
+    """Generic API error wrapper.
+
+    ``status_code`` and ``endpoint`` may be included in the context when known.
+    """
 
     def __init__(
         self, message: str, status_code: int | None = None, endpoint: str | None = None
