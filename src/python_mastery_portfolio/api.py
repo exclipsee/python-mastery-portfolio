@@ -4,12 +4,11 @@ import asyncio
 import hashlib
 import json
 import logging
-import tempfile
-import time
 from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from time import monotonic
 from typing import Any
@@ -32,7 +31,7 @@ from .websocket_manager import ConnectionManager
 from . import __version__ as __version__
 
 setup_json_logging()
-logger = logging.getLogger("api")
+logger = logging.getLogger(__name__)
 
 # Record application start time for uptime reporting
 APP_START = monotonic()
@@ -149,7 +148,7 @@ class VinResponse(BaseModel):
     valid: bool
     model_config = {
         "json_schema_extra": {
-            examples: [
+            "examples": [
                 {"vin": "1HGCM82633A004352", "valid": True},
                 {"vin": "INVALIDVIN1234567", "valid": False},
             ]
@@ -263,6 +262,17 @@ async def add_timing_header(request: Request, call_next: Callable[[Request], Awa
     elapsed_ms = (time.perf_counter() - start) * 1000
     response.headers["X-Process-Time"] = f"{elapsed_ms:.2f}ms"
     response.headers["X-Request-ID"] = req_id
+    # Add a reproducible curl header (simplified)
+    try:
+        method = request.method.upper()
+        path = str(request.url.path)
+        host = request.url.hostname or "localhost"
+        port = request.url.port
+        url = f"http://{host}:{port}{path}" if port else f"http://{host}{path}"
+        curl_cmd = f"curl -X {method} '{url}'"
+        response.headers["X-Reproduce-Curl"] = curl_cmd
+    except Exception:
+        pass
     logger.info("request", extra={"path": request.url.path, "method": request.method, "status_code": response.status_code, "ms": round(elapsed_ms, 2), "request_id": req_id})
     return response
 
@@ -538,3 +548,106 @@ async def websocket_metrics(websocket: WebSocket) -> None:
 def get_websocket_connections() -> dict[str, int]:
     """Get current WebSocket connection count."""
     return {"active_connections": _ws_manager.get_connection_count()}
+
+
+@app.get("/tip")
+def tip(seed: int | None = None) -> dict[str, object]:
+    """Return a deterministic tip of the day.
+
+    Tries to extract short tips from README.md; if unavailable, falls back to a small
+    built-in tip list. Selection is deterministic per-day unless `seed` is provided.
+    """
+    def _load_tips() -> list[str]:
+        tips: list[str] = []
+        try:
+            rpath = Path(__file__).resolve().parents[2] / "README.md"
+            text = rpath.read_text(encoding="utf8")
+            # Collect short non-empty lines from the README as tips (heuristic)
+            for line in text.splitlines():
+                s = line.strip()
+                if s and len(s) <= 120 and not s.startswith("#"):
+                    tips.append(s)
+        except Exception:
+            tips = []
+        if not tips:
+            tips = [
+                "Use small, focused tests for micro-features.",
+                "Prefer deterministic defaults for reproducible demos.",
+                "Keep CLI commands composable and scriptable.",
+                "Add a /health endpoint for quick readiness checks.",
+                "Document optional dependencies in README under 'Optional dependencies'.",
+                "Write small smoke tests for WebSocket managers.",
+            ]
+        return tips
+
+    tips = _load_tips()
+    if not tips:
+        return {"tip": "no tips available", "index": 0}
+    if seed is None:
+        idx = date.today().toordinal() % len(tips)
+    else:
+        idx = int(seed) % len(tips)
+    return {"tip": tips[idx], "index": idx, "date": str(date.today())}
+
+
+@app.get("/fortune")
+def fortune(seed: int | None = None) -> dict[str, object]:
+    """Return a short fortune-like one-liner. Optional seed for reproducibility."""
+    fortunes = [
+        "A small step today leads to big results tomorrow.",
+        "Refactor mercilessly, but with tests in place.",
+        "The best demos are those that fail fast and show progress.",
+        "Store reproducible examples in the repository.",
+        "Keep things simple; complexity can be deferred.",
+    ]
+    if seed is not None:
+        rng = random.Random(int(seed))
+        choice = rng.choice(fortunes)
+        idx = fortunes.index(choice)
+    else:
+        choice = random.choice(fortunes)
+        idx = fortunes.index(choice)
+    return {"fortune": choice, "index": idx}
+
+
+import inspect
+
+
+@app.get("/meta/explain")
+def meta_explain(fn: str) -> dict[str, object]:
+    """Return metadata about a public function: signature, docstring, and short summary.
+
+    `fn` may be a top-level function name exported by the package (like 'fibonacci') or
+    an API endpoint function name (like 'fib_endpoint').
+    """
+    # Map of candidate symbols to introspect (module name -> module object)
+    import importlib
+
+    candidates = {}
+    try:
+        mod = importlib.import_module("python_mastery_portfolio")
+        for name in dir(mod):
+            obj = getattr(mod, name)
+            candidates[name] = obj
+    except Exception:
+        pass
+    # also check api module
+    try:
+        api_mod = importlib.import_module("python_mastery_portfolio.api")
+        for name in dir(api_mod):
+            candidates[name] = getattr(api_mod, name)
+    except Exception:
+        pass
+
+    if fn not in candidates:
+        return {"error": "function not found", "fn": fn}
+    obj = candidates[fn]
+    sig = None
+    doc = inspect.getdoc(obj) or ""
+    try:
+        sig = str(inspect.signature(obj))
+    except Exception:
+        sig = None
+    # Short summary: first sentence of the docstring
+    summary = (doc.split(".")[0] + ".") if doc else ""
+    return {"fn": fn, "signature": sig, "doc": doc, "summary": summary}
