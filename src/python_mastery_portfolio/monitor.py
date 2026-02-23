@@ -1,3 +1,9 @@
+"""Lightweight monitoring utilities.
+
+Includes URL pinging with optional Prometheus histogram observation and a
+simple Slack webhook sender used for notifications in examples/tests.
+"""
+
 from __future__ import annotations
 
 import json
@@ -10,9 +16,13 @@ try:
 except Exception:  # pragma: no cover - optional
     Histogram = None  # type: ignore
 
-PING_HISTOGRAM: Histogram | None = (
-    Histogram("monitor_ping_duration_seconds", "Latency for URL ping requests", ["target"]) if Histogram is not None else None
-)
+# Create a histogram instance only if the dependency is available.
+if Histogram is not None:
+    PING_HISTOGRAM: Histogram | None = Histogram(
+        "monitor_ping_duration_seconds", "Latency for URL ping requests", ["target"]
+    )
+else:
+    PING_HISTOGRAM: Histogram | None = None
 
 
 @dataclass
@@ -24,6 +34,7 @@ class PingResult:
 
 
 def ping_url(url: str, timeout: float = 5.0) -> PingResult:
+    """Ping a URL and return status, success flag and elapsed seconds."""
     start = time.perf_counter()
     status: int | None = None
     ok = False
@@ -43,6 +54,7 @@ def ping_url(url: str, timeout: float = 5.0) -> PingResult:
 
 
 def send_slack_webhook(webhook_url: str, text: str, timeout: float = 5.0) -> bool:
+    """Send a simple text message to a Slack incoming webhook URL."""
     data = json.dumps({"text": text}).encode("utf-8")
     req = urllib.request.Request(
         webhook_url,
