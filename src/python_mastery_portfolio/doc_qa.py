@@ -1,17 +1,35 @@
+"""Document question-answering utilities and simple in-memory indexes.
+
+This module provides small, pluggable components useful for demos and
+unit tests: tokenizers, simple deterministic embedders, a naive
+in-memory index, optional FAISS-backed index, and a QAService that
+supports chunking and metadata.
+"""
+
 from __future__ import annotations
 
 import math
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Protocol
 
 
 def _tokenize(text: str) -> list[str]:
+    """Simple alphanumeric tokenizer that lowercases input.
+
+    Returns a list of tokens composed of letters, digits, or apostrophes.
+    """
     return [t for t in re.findall(r"[A-Za-z0-9']+", text.lower()) if t]
 
 
 class Embedder(Protocol):
+    """Embedder protocol expected by indexes and services.
+
+    Implementations should provide ``embed`` (list[str] -> list[list[float]])
+    and ``dim`` (-> int) methods.
+    """
+
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
     def dim(self) -> int: ...
@@ -21,13 +39,14 @@ class SimpleEmbedder:
     """Deterministic bag-of-words embedder for tests and demo.
 
     Maintains a growing vocabulary across calls; earlier vectors are padded
-    to new size by the index.
+    to the current vocabulary size when new tokens are discovered.
     """
 
     def __init__(self) -> None:
         self.vocab: dict[str, int] = {}
 
     def dim(self) -> int:
+        """Return the current embedding dimensionality (vocabulary size)."""
         return len(self.vocab)
 
     def _ensure_vocab(self, texts: list[str]) -> None:
@@ -45,12 +64,17 @@ class SimpleEmbedder:
         return v
 
     def embed(self, texts: list[str]) -> list[list[float]]:
+        """Embed a list of texts, updating vocabulary as needed."""
         self._ensure_vocab(texts)
         size = self.dim()
         return [self._vec(t, size) for t in texts]
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
+    """Compute cosine similarity between two vectors.
+
+    Returns 0.0 when either vector has zero norm.
+    """
     num = sum(x * y for x, y in zip(a, b, strict=True))
     da = math.sqrt(sum(x * x for x in a))
     db = math.sqrt(sum(y * y for y in b))
@@ -60,6 +84,11 @@ def _cosine(a: list[float], b: list[float]) -> float:
 
 
 class Index(Protocol):
+    """Index protocol used by QAService and tests.
+
+    Implementations should support add/reset/search methods.
+    """
+
     def add(self, texts: list[str]) -> list[int]: ...
 
     def reset(self) -> None: ...
@@ -75,6 +104,12 @@ class _Entry:
 
 
 class NaiveIndex:
+    """A simple in-memory index using cosine similarity over lists of floats.
+
+    This index is meant for tests and small demos; it stores embeddings as
+    Python lists and computes cosine similarity on search.
+    """
+
     def __init__(self, embedder: Embedder | None = None) -> None:
         self.embedder: Embedder = embedder or SimpleEmbedder()
         self._entries: list[_Entry] = []
@@ -89,6 +124,7 @@ class NaiveIndex:
         return v
 
     def add(self, texts: list[str]) -> list[int]:
+        """Add texts to the index and return assigned integer ids."""
         embs = self.embedder.embed(texts)
         # track maximum dimension and fit old entries
         self._dim = max(self._dim, self.embedder.dim())
@@ -104,12 +140,16 @@ class NaiveIndex:
         return ids
 
     def reset(self) -> None:
+        """Clear the index state but keep the embedder instance."""
         self._entries.clear()
         self._next_id = 1
         self._dim = 0
-        # keep embedder instance as-is
 
     def search(self, query: str, k: int) -> list[tuple[int, float, str]]:
+        """Search for the top-k similar texts to ``query``.
+
+        Returns a list of (id, score, text), sorted by score descending.
+        """
         q_emb = self.embedder.embed([query])[0]
         q_emb = self._fit_dim(q_emb, self._dim)
         scored = [(e.id, _cosine(q_emb, e.emb), e.text) for e in self._entries]
@@ -158,10 +198,19 @@ def _chunk_text(text: str, *, max_chars: int, overlap: int) -> list[tuple[int, i
 
 
 class SentenceTransformerEmbedder:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
-        try:
-            from sentence_transformers import SentenceTransformer
+    """SentenceTransformer-based embedder for advanced usage.
 
+    Loads `sentence_transformers` dynamically so the module can be imported
+    even when the optional dependency is not installed. Initialization will
+    raise a RuntimeError if the package is missing.
+    """
+
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
+        import importlib
+
+        try:
+            st_mod = importlib.import_module("sentence_transformers")
+            SentenceTransformer = getattr(st_mod, "SentenceTransformer")
             self.model = SentenceTransformer(model_name)
         except Exception as exc:  # pragma: no cover - optional dependency
             raise RuntimeError("sentence-transformers not available") from exc
@@ -181,9 +230,11 @@ class FaissIndex:
     """Thin FAISS wrapper: uses FAISS if installed, otherwise raises on init."""
 
     def __init__(self, embedder: Embedder) -> None:
+        import importlib
+
         try:
-            import faiss  # type: ignore
-            import numpy as np
+            faiss = importlib.import_module("faiss")
+            np = importlib.import_module("numpy")
         except Exception as exc:  # pragma: no cover - optional dependency
             raise RuntimeError("faiss and numpy are required for FaissIndex") from exc
 
@@ -195,7 +246,9 @@ class FaissIndex:
         self._faiss = faiss.IndexFlatIP(self._dim)
 
     def add(self, texts: list[str]) -> list[int]:
-        import numpy as np
+        import importlib
+
+        np = importlib.import_module("numpy")
 
         ids: list[int] = []
         self._texts.extend(texts)
@@ -218,7 +271,9 @@ class FaissIndex:
         self._faiss = type(self._faiss)(self._dim)
 
     def search(self, query: str, k: int) -> list[tuple[int, float, str]]:
-        import numpy as np
+        import importlib
+
+        np = importlib.import_module("numpy")
 
         if not self._texts or k <= 0:
             return []
@@ -258,6 +313,12 @@ class RichHit:
 
 
 class QAService:
+    """Question-answering service with pluggable embedder and index.
+
+    Supports adding documents, searching, and retrieving rich results with
+    metadata.
+    """
+
     def __init__(self, embedder: Embedder | None = None, index: Index | None = None) -> None:
         self.embedder: Embedder = embedder or SimpleEmbedder()
         self.index: Index = index or NaiveIndex(self.embedder)

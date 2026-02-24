@@ -1,11 +1,23 @@
+"""Small embedding utilities.
+
+Provides a compact `SimpleEmbedder` that uses sklearn TF-IDF when available
+and a deterministic hash-based fallback otherwise. Also wraps
+`sentence-transformers` when installed.
+"""
+
 from __future__ import annotations
 
 import hashlib
+import importlib
 import math
 from collections.abc import Iterable
-from typing import Any, cast
+from typing import Any
 
-import numpy as np
+# Lazily import numpy to keep optional-dep environments functional.
+try:
+    np = importlib.import_module("numpy")
+except Exception:
+    np = None  # type: ignore
 
 
 def _char_ngrams(text: str, n_min: int, n_max: int) -> list[str]:
@@ -21,7 +33,13 @@ def _char_ngrams(text: str, n_min: int, n_max: int) -> list[str]:
 
 
 class SimpleEmbedder:
-    """Compact embedder: TF-IDF if available, otherwise deterministic hashing."""
+    """Compact embedder: TF-IDF if available, otherwise deterministic hashing.
+
+    Methods:
+        fit(texts): fit internal TF-IDF vectorizer when available.
+        transform(texts) -> np.ndarray: return a 2D array (n_texts x dim).
+        embed(text) -> np.ndarray: return a 1D array of length `dim`.
+    """
 
     def __init__(self, dim: int = 512, ngram_range: tuple[int, int] = (3, 5), use_sklearn: bool | None = None) -> None:
         self.dim = int(dim)
@@ -43,7 +61,14 @@ class SimpleEmbedder:
         if self._vectorizer is not None:
             self._vectorizer.fit(list(texts))
 
-    def transform(self, texts: Iterable[str]) -> np.ndarray:
+    def transform(self, texts: Iterable[str]):
+        """Return a 2-D numpy array of embeddings (n_texts x dim).
+
+        Raises:
+            ImportError: if numpy is not available in the environment.
+        """
+        if np is None:
+            raise ImportError("numpy is required for embeddings; install it with `pip install numpy`")
         texts_list = list(texts)
         if self._vectorizer is not None:
             arr = self._vectorizer.transform(texts_list).toarray().astype("float32")
@@ -68,14 +93,17 @@ class SimpleEmbedder:
             out[i] = vec
         return out
 
-    def fit_transform(self, texts: Iterable[str]) -> np.ndarray:
+    def fit_transform(self, texts: Iterable[str]):
         self.fit(texts)
         return self.transform(texts)
 
-    def embed(self, text: str) -> np.ndarray:
-        return cast(np.ndarray, self.transform([text])[0])
+    def embed(self, text: str):
+        """Return a 1-D embedding vector for ``text`` of length ``dim``."""
+        arr = self.transform([text])
+        return arr[0]
 
-    def embed_batch(self, texts: Iterable[str]) -> np.ndarray:
+    def embed_batch(self, texts: Iterable[str]):
+        """Return embeddings for an iterable of texts as a 2-D numpy array."""
         return self.transform(texts)
 
 
@@ -89,8 +117,8 @@ class SentenceTransformerEmbedder:
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
         try:
-            from sentence_transformers import SentenceTransformer
-
+            st_mod = importlib.import_module("sentence_transformers")
+            SentenceTransformer = getattr(st_mod, "SentenceTransformer")
             self._model = SentenceTransformer(model_name)
         except Exception as exc:  # pragma: no cover - environment dependent
             raise RuntimeError(
@@ -98,14 +126,14 @@ class SentenceTransformerEmbedder:
                 "SentenceTransformerEmbedder"
             ) from exc
 
-    def embed(self, text: str) -> np.ndarray:
-        import numpy as _np
-
+    def embed(self, text: str):
+        if np is None:
+            raise ImportError("numpy is required for embeddings; install it with `pip install numpy`")
         return self._model.encode(text, convert_to_numpy=True)
 
-    def embed_batch(self, texts: Iterable[str]) -> np.ndarray:
-        import numpy as _np
-
+    def embed_batch(self, texts: Iterable[str]):
+        if np is None:
+            raise ImportError("numpy is required for embeddings; install it with `pip install numpy`")
         return self._model.encode(list(texts), convert_to_numpy=True)
 
 

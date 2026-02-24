@@ -16,13 +16,15 @@ try:
 except Exception:  # pragma: no cover - optional
     Histogram = None  # type: ignore
 
+from typing import Any
+
 # Create a histogram instance only if the dependency is available.
 if Histogram is not None:
-    PING_HISTOGRAM: Histogram | None = Histogram(
+    PING_HISTOGRAM: Any = Histogram(
         "monitor_ping_duration_seconds", "Latency for URL ping requests", ["target"]
     )
 else:
-    PING_HISTOGRAM: Histogram | None = None
+    PING_HISTOGRAM: Any = None
 
 
 @dataclass

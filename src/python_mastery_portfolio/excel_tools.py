@@ -1,17 +1,42 @@
+"""Helpers for writing tabular data to Excel using openpyxl."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
+from importlib import import_module
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font
-from openpyxl.worksheet.worksheet import Worksheet
+# Dynamically import openpyxl to avoid static analysis errors when the
+# optional dependency is not installed in the edit environment.
+try:
+    _openpyxl = import_module("openpyxl")
+    Workbook = getattr(_openpyxl, "Workbook")
+    styles = getattr(_openpyxl, "styles")
+    Alignment = getattr(styles, "Alignment")
+    Font = getattr(styles, "Font")
+    Worksheet = getattr(getattr(_openpyxl, "worksheet"), "worksheet").Worksheet
+except Exception:
+    # Fallback definitions when import fails; write_rows_to_excel will raise
+    Workbook = None  # type: ignore
+    Alignment: Any = None
+    Font: Any = None
+    Worksheet = object
 
 
 def write_rows_to_excel(rows: Iterable[Iterable[str]], output_path: str | Path) -> Path:
+    """Write rows (iterable of iterables) to an Excel workbook.
+
+    The first row is treated as a header and bolded. Column widths are
+    estimated from the longest cell in each column. The output directory
+    will be created if it does not exist.
+    """
+    if Workbook is None:
+        raise ImportError("openpyxl is required for write_rows_to_excel; please install it (pip install openpyxl)")
+
     path = Path(output_path)
-    wb = Workbook()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    wb = cast(Any, Workbook)()
     ws = cast(Worksheet, wb.active)
     ws.title = "Data"
 
@@ -24,8 +49,10 @@ def write_rows_to_excel(rows: Iterable[Iterable[str]], output_path: str | Path) 
 
     ws.append(list(header))
     for cell in ws[1]:
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal="center")
+        if Font is not None:
+            cell.font = Font(bold=True)
+        if Alignment is not None:
+            cell.alignment = Alignment(horizontal="center")
 
     for row in rows_iter:
         ws.append(list(row))

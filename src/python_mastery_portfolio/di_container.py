@@ -7,11 +7,10 @@ small and suitable for tests and examples.
 
 from __future__ import annotations
 
-import functools
 import inspect
 from collections.abc import Callable
 from enum import Enum
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
