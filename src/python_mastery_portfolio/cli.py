@@ -37,17 +37,18 @@ def _global_options(ctx: typer.Context, verbose: bool = typer.Option(False, "--v
 def fib(
     n: int = typer.Argument(..., min=0, help="Return the n-th Fibonacci number (0-indexed)"),
     json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
-    ascii_out: bool = typer.Option(False, "--ascii", help="Emit a small ASCII visualization of the sequence up to n"),
+    ascii_out: bool = typer.Option(False, "--ascii", "-a", help="Emit a small ASCII visualization of the sequence up to n"),
+    width: int = typer.Option(40, "--width", "-w", help="Width of ASCII bars when using --ascii"),
 ) -> None:
     """Compute the n-th Fibonacci number or show an ASCII visualization of the sequence up to n."""
     if ascii_out:
-        # Show sequence from 0..n as small bars scaled to width 40
+        # Show sequence from 0..n as small bars scaled to provided width
         vals = [fibonacci(i) for i in range(n + 1)]
         max_val = max(vals) if vals else 1
         max_val = max(1, max_val)
         for i, v in enumerate(vals):
-            width = min(40, int((v / max_val) * 40)) if max_val > 0 else 0
-            bar = "█" * width if width > 0 else "."
+            bar_width = min(width, int((v / max_val) * width)) if max_val > 0 else 0
+            bar = "█" * bar_width if bar_width > 0 else "."
             typer.echo(f"{i:>2}: {bar} {v}")
         return
     val = fibonacci(n)
@@ -71,7 +72,7 @@ def gcd_cmd(
 
 
 @app.command("benchmark")
-def benchmark_cmd(n: int = typer.Option(20, "--n", "-n"), iterations: int = typer.Option(1000, "--iterations", "-i"), warmup: int = typer.Option(3, "--warmup", "-w"), method: str = typer.Option("both", "--method"), json_out: bool = typer.Option(False, "--json"),) -> None:
+def benchmark_cmd(n: int = typer.Option(20, "--n", "-n"), iterations: int = typer.Option(1000, "--iterations", "-i"), warmup: int = typer.Option(3, "--warmup", "-w"), method: str = typer.Option("both", "--method"), json_out: bool = typer.Option(False, "--json"), sparkline: bool = typer.Option(False, "--sparkline", help="Show compact ASCII sparkline of timings"),) -> None:
     import time
     from statistics import mean
 
@@ -93,9 +94,15 @@ def benchmark_cmd(n: int = typer.Option(20, "--n", "-n"), iterations: int = type
     if json_out:
         typer.echo(json.dumps(out, sort_keys=True))
         return
-    for k, v in out.items():
-        typer.echo(f"{k}: iterations={v['iterations']} total_ms={v['total_ms']:.3f}")
-        typer.echo(f"{k}: avg_ms={v['avg_ms']:.6f}")
+    # New: optional sparkline output
+    if sparkline:
+        for k, v in out.items():
+            sparkline_bar = "█" * int((v["avg_ms"] / max(v["avg_ms"] for v in out.values())) * 40)
+            typer.echo(f"{k}: {sparkline_bar} {v['avg_ms']:.6f} ms")
+    else:
+        for k, v in out.items():
+            typer.echo(f"{k}: iterations={v['iterations']} total_ms={v['total_ms']:.3f}")
+            typer.echo(f"{k}: avg_ms={v['avg_ms']:.6f}")
 
 
 @app.command("search")

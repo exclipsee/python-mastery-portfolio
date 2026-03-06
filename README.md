@@ -72,3 +72,10 @@ python -m black .
 python -m isort .
 python -m ruff check .
 ```
+
+## New demo endpoints
+
+- GET /tip : deterministic tip of the day; accepts optional `?seed=` to override selection.
+- GET /fortune : returns a short one-liner; accepts optional `?seed=` for reproducible choices.
+- GET /meta/explain?fn=<name> : returns function signature, docstring and a short summary for exported package symbols.
+- Responses include an `X-Reproduce-Curl` header to help reproduce requests locally.
