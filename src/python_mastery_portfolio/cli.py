@@ -128,9 +128,13 @@ def run() -> None:  # pragma: no cover
 def version_cmd() -> None:
     """Print the package version."""
     try:
-        ver = _metadata.version("python-mastery-portfolio")
+        # Prefer the package's __version__ when available (works for editable installs)
+        from . import __version__ as ver
     except Exception:
-        ver = "0.0.0"
+        try:
+            ver = _metadata.version("python-mastery-portfolio")
+        except Exception:
+            ver = "0.0.0"
     typer.echo(ver)
 
 
