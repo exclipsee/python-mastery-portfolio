@@ -4,6 +4,8 @@ import asyncio
 import hashlib
 import json
 import logging
+import tempfile
+import time
 from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -431,24 +433,29 @@ def excel_export_api(req: ExcelExportRequest) -> Response:
     """
     from fastapi import HTTPException
 
-    # Basic validation: rows must be a non-empty list of lists of strings
+    # Basic validation: rows must be a non-empty list of lists
     if not isinstance(req.rows, list) or len(req.rows) == 0:
         raise HTTPException(status_code=400, detail="rows must be a non-empty list")
-    # Validate header
+    # Validate header - must be list of strings
     header = req.rows[0]
-    if not isinstance(header, list) or not all(isinstance(c, (str, bool, int, float)) for c in header):
+    if not isinstance(header, list) or not all(isinstance(c, str) for c in header):
         raise HTTPException(status_code=400, detail="header row must be a list of strings")
-    # Validate other rows
+    ncols = len(header)
+    # Validate other rows: ensure same length and primitive types; coerce to str for writing
+    normalized_rows: list[list[str]] = [list(map(str, header))]
     for i, row in enumerate(req.rows[1:], start=1):
         if not isinstance(row, list):
             raise HTTPException(status_code=400, detail=f"row {i} is not a list")
+        if len(row) != ncols:
+            raise HTTPException(status_code=400, detail=f"row {i} has wrong number of columns (expected {ncols})")
         for j, cell in enumerate(row):
             if not isinstance(cell, (str, bool, int, float)):
-                raise HTTPException(status_code=400, detail=f"cell at row {i} col {j} is not a string")
+                raise HTTPException(status_code=400, detail=f"cell at row {i} col {j} is not a primitive type")
+        normalized_rows.append([str(c) for c in row])
 
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / "export.xlsx"
-        write_rows_to_excel(req.rows, path)
+        write_rows_to_excel(normalized_rows, path)
         data = path.read_bytes()
     headers = {"Content-Disposition": 'attachment; filename="export.xlsx"'}
     return Response(
