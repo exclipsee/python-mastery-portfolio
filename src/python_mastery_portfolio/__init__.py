@@ -1,5 +1,7 @@
 """Public package exports."""
 
+# Updated 2026-03-09
+
 from importlib import metadata as _metadata
 
 from .algorithms import binary_search, fibonacci
