@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Updated 2026-03-09
+
 import json
 from importlib import metadata as _metadata
 
