@@ -79,3 +79,5 @@ python -m ruff check .
 - GET /fortune : returns a short one-liner; accepts optional `?seed=` for reproducible choices.
 - GET /meta/explain?fn=<name> : returns function signature, docstring and a short summary for exported package symbols.
 - Responses include an `X-Reproduce-Curl` header to help reproduce requests locally.
+
+Last updated: March 9, 2026
