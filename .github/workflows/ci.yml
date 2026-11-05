@@ -1,10 +1,10 @@
-name: CI
+name: Learning exercises
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
   pull_request:
-    branches: [ main, master ]
+    branches: [main]
 
 jobs:
   test:
@@ -12,10 +12,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - name: Checkout
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -23,57 +23,5 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-
-      - name: Ruff lint
-        run: |
-          python -m ruff check src tests
-
-      - name: Black (check)
-        run: |
-          python -m black --check .
-
-      - name: Mypy
-        run: |
-          python -m mypy src
-
-      - name: Run tests with coverage
-        run: |
-          pytest -q --cov=src --cov-report=xml
-
-      - name: Check coverage threshold
-        if: always()
-        run: |
-          python - <<'PY'
-          import xml.etree.ElementTree as ET, sys
-          try:
-              root = ET.parse('coverage.xml').getroot()
-          except Exception:
-              print('coverage.xml not found; ensure pytest-cov produced coverage.xml')
-              sys.exit(1)
-          # coverage.xml root has line-rate attribute (fraction)
-          rate = float(root.attrib.get('line-rate', root.attrib.get('line_rate', 0)))
-          pct = rate * 100.0
-          print(f'Coverage: {pct:.2f}%')
-          threshold = 75.0
-          if pct < threshold:
-              print(f'ERROR: coverage {pct:.2f}% is below threshold {threshold}%')
-              sys.exit(1)
-          PY
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
-
-      - name: Upload to Codecov
-        if: always()
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.xml
-          fail_ci_if_error: true
+      - name: Run lesson tests
+        run: python -m unittest discover -v

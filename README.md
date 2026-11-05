@@ -1,83 +1,59 @@
-# python-mastery-portfolio
+# Python Learning Portfolio
 
-![CI](https://github.com/exclipsee/python-mastery-portfolio/actions/workflows/ci.yml/badge.svg?branch=main) ![Codecov](https://codecov.io/gh/exclipsee/python-mastery-portfolio/branch/main/graph/badge.svg)
+I'm starting my Python learning again from the beginning. This repository is a
+place to practice the fundamentals, keep track of what I'm learning, and build
+small projects I can share in my portfolio. No previous knowledge is assumed.
 
-Production-grade Python: decorators, caching, DI, exceptions, typing.
+## Getting started
 
-## Features
+You need Python 3.10 or newer. Check that Python is installed:
 
-- **Decorators**: `@retry`, `@async_retry`, `@timed`, `@validate_types`
-- **Caching**: `@cache`, `@async_cache`, LRUCache (thread-safe + async-safe)
-- **Error Handling**: Custom exceptions with rich context
-- **DI Container**: Singleton/Transient/Scoped lifecycle management
-- **Advanced Typing**: Result[T,U], Container[T], Pipeline[T], Protocols
-
-## Modules
-
-| Module | What |
-|--------|------|
-| exceptions.py | Custom exception hierarchy |
-| decorators.py | @retry, @cache, @timed, @validate_types |
-| caching.py | LRU cache (sync & async) |
-| di_container.py | Dependency injection |
-| typing_utils.py | Result, Container, Pipeline |
-
-## Running locally
-
-Start the API locally with Docker Compose:
-
-```sh
-docker-compose up --build
+```bash
+python3 --version
 ```
 
-The service listens on port 8000 by default. A health probe is available at:
+Run the practice tests from the repository root:
 
-```
-GET http://localhost:8000/health
-```
-
-The `/health` endpoint returns JSON with `status`, `uptime` (seconds), and `version`.
-
-
-## Optional dependencies
-
-Some features require optional extras. For embeddings/RAG functionality, install the `rag` extras:
-
-```sh
-pip install .[rag]
+```bash
+python3 -m unittest discover -v
 ```
 
-If `sentence-transformers` or `scikit-learn` are not installed, the library falls back to a deterministic, lightweight `SimpleEmbedder` implementation.
+The project uses Python's built-in `unittest` module, so there are no packages
+to install.
 
-## Developer setup
+## How I'm learning
 
-To run tests and development checks locally, install the `dev` extras and enable pre-commit hooks:
+1. Read the lesson notes.
+2. Try each exercise before looking at its example implementation.
+3. Run the tests and make small changes to see what happens.
+4. Write down what I learned and update my progress below.
+5. Build a small project when I'm ready, then add it to this portfolio.
 
-```sh
-python -m pip install -e .[dev]
-python -m pip install pre-commit
-pre-commit install
-```
+## Learning path
 
-Run the test suite with:
+| Stage | Topics | Status |
+|---|---|---|
+| 1. Fundamentals | Values, strings, numbers, booleans, lists, and simple functions | Starting here |
+| 2. Decisions and loops | `if`, `for`, `while`, and comparisons | Up next |
+| 3. Collections | Lists, dictionaries, sets, and tuples | Planned |
+| 4. Functions and modules | Parameters, return values, imports, and code organization | Planned |
+| 5. Everyday Python | Errors, files, and working with data | Planned |
+| 6. Object-oriented basics | Classes and objects | Planned |
+| 7. Testing and Git | Writing tests and saving work with Git | Planned |
+| 8. Small projects | Command-line tools and other beginner-sized projects | Planned |
 
-```sh
-python -m pytest
-```
+## Lessons
 
-Run formatting and lint checks locally:
+- [Fundamentals](lessons/fundamentals/README.md) — a first set of small,
+  runnable exercises.
 
-```sh
-python -m black .
-python -m isort .
-python -m ruff check .
-```
+## Portfolio projects
 
-## New demo endpoints
+This section will grow as I finish projects. Good first projects include a
+number guessing game, a simple calculator, and a personal expense tracker.
 
-- GET /tip : deterministic tip of the day; accepts optional `?seed=` to override selection.
-- GET /fortune : returns a short one-liner; accepts optional `?seed=` for reproducible choices.
-- GET /meta/explain?fn=<name> : returns function signature, docstring and a short summary for exported package symbols.
-- Responses include an `X-Reproduce-Curl` header to help reproduce requests locally.
+## Keeping this portfolio honest
 
-Last updated: March 9, 2026
+This is a learning-in-progress repository. I'll add projects as I build them
+and describe what I learned, rather than presenting unfinished work as
+production software.
