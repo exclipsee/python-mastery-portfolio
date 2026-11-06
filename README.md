@@ -1,59 +1,55 @@
-# Python Learning Portfolio
+# Local LM Studio chat for VS Code
 
-I'm starting my Python learning again from the beginning. This repository is a
-place to practice the fundamentals, keep track of what I'm learning, and build
-small projects I can share in my portfolio. No previous knowledge is assumed.
+This project adds locally served LM Studio models to VS Code's built-in chat
+model picker. In Agent Mode, VS Code handles workspace context, file tools,
+and its usual approval flow; this extension only connects the chat model to
+LM Studio.
 
-## Getting started
+## Requirements
 
-You need Python 3.10 or newer. Check that Python is installed:
+- Visual Studio Code 1.104 or newer, with Copilot Chat available.
+- The Copilot **Bring Your Own Language Model Key** policy must be enabled.
+- [LM Studio](https://lmstudio.ai/) with a model downloaded and loaded.
+- A model that supports tool/function calling for Agent Mode.
 
-```bash
-python3 --version
-```
+## Build and install
 
-Run the practice tests from the repository root:
+1. Start the LM Studio local server. Its default OpenAI-compatible API URL is
+   `http://localhost:1234/v1`.
+2. From the repository root, build a VS Code extension package:
 
-```bash
-python3 -m unittest discover -v
-```
+   ```bash
+   python3 scripts/package_extension.py
+   ```
 
-The project uses Python's built-in `unittest` module, so there are no packages
-to install.
+3. Install `dist/lm-studio-chat.vsix` from VS Code's Extensions view using
+   **Install from VSIX...**, or run:
 
-## How I'm learning
+   ```bash
+   code --install-extension dist/lm-studio-chat.vsix
+   ```
 
-1. Read the lesson notes.
-2. Try each exercise before looking at its example implementation.
-3. Run the tests and make small changes to see what happens.
-4. Write down what I learned and update my progress below.
-5. Build a small project when I'm ready, then add it to this portfolio.
+4. Reload VS Code. In a new Chat conversation, select a model under
+   **LM Studio**, then select **Agent** mode to enable VS Code's workspace
+   tools.
 
-## Learning path
+The extension reads and writes files only when VS Code's agent tools do so.
+Review tool requests and edits in VS Code as usual. The extension itself does
+not access workspace files or run shell commands.
 
-| Stage | Topics | Status |
-|---|---|---|
-| 1. Fundamentals | Values, strings, numbers, booleans, lists, and simple functions | Starting here |
-| 2. Decisions and loops | `if`, `for`, `while`, and comparisons | Up next |
-| 3. Collections | Lists, dictionaries, sets, and tuples | Planned |
-| 4. Functions and modules | Parameters, return values, imports, and code organization | Planned |
-| 5. Everyday Python | Errors, files, and working with data | Planned |
-| 6. Object-oriented basics | Classes and objects | Planned |
-| 7. Testing and Git | Writing tests and saving work with Git | Planned |
-| 8. Small projects | Command-line tools and other beginner-sized projects | Planned |
+## Configuration
 
-## Lessons
+Open Settings and search for `LM Studio Chat` to configure the server URL,
+request timeout, temperature, and the model context/output token limits. The
+default URL is `http://localhost:1234/v1`.
 
-- [Fundamentals](lessons/fundamentals/README.md) — a first set of small,
-  runnable exercises.
+If LM Studio's server authentication is enabled, run **LM Studio: Set API
+Key** from the Command Palette. The key is stored in VS Code Secret Storage;
+it is not written to the repository.
 
-## Portfolio projects
+Use **LM Studio: Check Server Connection** from the Command Palette to test
+the server and list loaded models.
 
-This section will grow as I finish projects. Good first projects include a
-number guessing game, a simple calculator, and a personal expense tracker.
-
-## Keeping this portfolio honest
-
-This is a learning-in-progress repository. I'll add projects as I build them
-and describe what I learned, rather than presenting unfinished work as
-production software.
+The local model is available in VS Code's chat UI; it does not replace the
+model used by this already-running assistant session. Start a new VS Code
+chat and select an LM Studio model to use it.

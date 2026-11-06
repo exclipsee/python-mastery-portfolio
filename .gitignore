@@ -1,44 +1,15 @@
-# Python
+# Local build output
+dist/
+
+# Python packaging helper
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.Python
-env/
-venv/
 .venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Testing
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-coverage.xml
-.coverage*
-htmlcov/
-
-
+# Editor and OS
 .vscode/
+.vscode-test/
 .idea/
-
-# OS
+.DS_Store
 Thumbs.db
 Desktop.ini
-

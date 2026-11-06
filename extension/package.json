@@ -1,0 +1,72 @@
+{
+  "name": "lm-studio-chat",
+  "displayName": "LM Studio Chat",
+  "description": "Use local LM Studio models in VS Code Chat and Agent Mode.",
+  "version": "0.1.0",
+  "publisher": "local-lmstudio-chat",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "lmstudio",
+        "displayName": "LM Studio",
+        "managementCommand": "lmStudioChat.checkConnection"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lmStudioChat.checkConnection",
+        "title": "LM Studio: Check Server Connection"
+      },
+      {
+        "command": "lmStudioChat.setApiKey",
+        "title": "LM Studio: Set API Key"
+      }
+    ],
+    "configuration": {
+      "title": "LM Studio Chat",
+      "properties": {
+        "lmStudioChat.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:1234/v1",
+          "description": "Base URL of the LM Studio OpenAI-compatible API."
+        },
+        "lmStudioChat.requestTimeout": {
+          "type": "number",
+          "default": 120,
+          "minimum": 1,
+          "maximum": 600,
+          "description": "Maximum time to wait for an LM Studio response, in seconds."
+        },
+        "lmStudioChat.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature sent with chat requests."
+        },
+        "lmStudioChat.maxInputTokens": {
+          "type": "integer",
+          "default": 32768,
+          "minimum": 1024,
+          "maximum": 1000000,
+          "description": "Context size reported to VS Code for local models."
+        },
+        "lmStudioChat.maxOutputTokens": {
+          "type": "integer",
+          "default": 8192,
+          "minimum": 1,
+          "maximum": 131072,
+          "description": "Maximum output tokens requested from LM Studio."
+        }
+      }
+    }
+  }
+}
