@@ -31,3 +31,5 @@ def calculate_total(prices: list[float]) -> float:
         total += price
 
     return total
+
+
