@@ -1,7 +1,9 @@
-def greet(name: str) -> str:
-    """Greets the specified person."""
-    return f"Hello, {name}!"
+def square(number: int) -> int:
+    """Return the square of a number."""
+    return number * number
 
-def add(a: int, b: int) -> int:
-    """Adds two numbers."""
-    return a + b
+
+def is_palindrome(text: str) -> bool:
+    """Check whether a string is a palindrome ignoring case and spaces."""
+    cleaned = "".join(char.lower() for char in text if char.isalnum())
+    return cleaned == cleaned[::-1]
