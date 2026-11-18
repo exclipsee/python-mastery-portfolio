@@ -2,6 +2,7 @@ def square(number: int) -> int:
     """Return the square of a number."""
     return number * number
 
+#Trying out comments
 
 def is_palindrome(text: str) -> bool:
     """Check whether a string is a palindrome ignoring case and spaces."""
